@@ -9,6 +9,15 @@ export type BodyType =
   | "Van";
 export type Condition = "New" | "Used" | "Certified";
 export type CarStatus = "Available" | "Reserved" | "Sold";
+export type Drivetrain = "FWD" | "RWD" | "AWD" | "4WD";
+/** Ghana market registration / import status — a key buying factor locally. */
+export type RegistrationStatus =
+  | "Registered (Ghana)"
+  | "Duty paid, unregistered"
+  | "Duty not paid"
+  | "Foreign used"
+  | "Home used"
+  | "Brand new";
 
 export interface CarImage {
   id: string;
@@ -37,6 +46,16 @@ export interface Car {
   verified: boolean;
   images: CarImage[];
   createdAt: string; // ISO
+
+  // ── Extended specs (all optional for backward compatibility) ──
+  engineCapacity?: string; // e.g. "2.4L", "1.5L Turbo", "Electric"
+  drivetrain?: Drivetrain;
+  seats?: number;
+  doors?: number;
+  cylinders?: number;
+  horsepower?: number;
+  previousOwners?: number;
+  registrationStatus?: RegistrationStatus;
 }
 
 export type DiscountType = "percent" | "fixed";

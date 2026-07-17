@@ -191,7 +191,20 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: "carlab-store",
-      version: 1,
+      version: 2,
+      // v1 → v2 added extended specs (engine, drivetrain, seats, …). Refresh the
+      // seed inventory to include them while preserving user preferences.
+      migrate: (persisted, version) => {
+        const state = persisted as Partial<StoreState>;
+        if (state && version < 2) {
+          return {
+            ...state,
+            cars: SEED_CARS,
+            discounts: SEED_DISCOUNTS,
+          } as StoreState;
+        }
+        return state as StoreState;
+      },
     },
   ),
 );

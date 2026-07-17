@@ -30,6 +30,14 @@ interface Draft {
   imageOffset: number;
   imageCount: number;
   createdAt: string;
+  engineCapacity?: string;
+  drivetrain?: Car["drivetrain"];
+  seats?: number;
+  doors?: number;
+  cylinders?: number;
+  horsepower?: number;
+  previousOwners?: number;
+  registrationStatus?: Car["registrationStatus"];
 }
 
 const DRAFTS: Draft[] = [
@@ -322,8 +330,54 @@ export const SEED_CARS: Car[] = DRAFTS.map((d) => {
     verified: d.verified,
     images: imgs(d.imageOffset, d.imageCount, id),
     createdAt: d.createdAt,
+    engineCapacity: d.engineCapacity ?? defaultEngine(d),
+    drivetrain: d.drivetrain ?? defaultDrivetrain(d),
+    seats: d.seats ?? defaultSeats(d),
+    doors: d.doors ?? defaultDoors(d),
+    cylinders: d.cylinders ?? (d.fuel === "Electric" ? undefined : 4),
+    horsepower: d.horsepower,
+    previousOwners:
+      d.previousOwners ?? (d.condition === "New" ? 0 : 1),
+    registrationStatus: d.registrationStatus ?? defaultRegistration(d),
   };
 });
+
+function defaultEngine(d: Draft): string {
+  if (d.fuel === "Electric") return "Electric";
+  switch (d.bodyType) {
+    case "Pickup":
+      return "2.4L";
+    case "SUV":
+      return d.fuel === "Diesel" ? "3.0L" : "2.0L";
+    case "Hatchback":
+      return "2.0L";
+    default:
+      return d.fuel === "Hybrid" ? "1.8L" : "2.0L";
+  }
+}
+
+function defaultDrivetrain(d: Draft): Car["drivetrain"] {
+  if (d.bodyType === "Pickup") return "4WD";
+  if (d.bodyType === "SUV") return "AWD";
+  return "FWD";
+}
+
+function defaultSeats(d: Draft): number {
+  if (d.bodyType === "Van") return 8;
+  if (d.bodyType === "SUV") return 5;
+  if (d.bodyType === "Coupe") return 4;
+  return 5;
+}
+
+function defaultDoors(d: Draft): number {
+  if (d.bodyType === "Coupe") return 2;
+  return 5;
+}
+
+function defaultRegistration(d: Draft): Car["registrationStatus"] {
+  if (d.condition === "New") return "Brand new";
+  return "Registered (Ghana)";
+}
 
 export const SEED_DISCOUNTS: DiscountCode[] = [
   {

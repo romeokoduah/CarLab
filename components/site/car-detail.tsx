@@ -13,6 +13,13 @@ import {
   Car as CarIcon,
   ShieldCheck,
   Check,
+  Zap,
+  Cpu,
+  Users,
+  DoorOpen,
+  Compass,
+  FileCheck,
+  UserRound,
 } from "lucide-react";
 import { Gallery } from "@/components/site/gallery";
 import { DiscountBox } from "@/components/site/discount-box";
@@ -68,14 +75,44 @@ export function CarDetail({ id }: { id: string }) {
   const title = `${car.year} ${car.make} ${car.model}`;
   const finalGhs = discount?.ok ? discount.finalPrice : undefined;
 
-  const specs = [
+  const specs: { icon: typeof Calendar; label: string; value: string }[] = [
     { icon: Calendar, label: "Year", value: String(car.year) },
     { icon: Gauge, label: "Mileage", value: formatMileage(car.mileageKm) },
     { icon: Cog, label: "Transmission", value: car.transmission },
     { icon: FuelIcon, label: "Fuel", value: car.fuel },
+    ...(car.engineCapacity
+      ? [{ icon: Zap, label: "Engine", value: car.engineCapacity }]
+      : []),
+    ...(car.drivetrain
+      ? [{ icon: Compass, label: "Drivetrain", value: car.drivetrain }]
+      : []),
+    ...(car.cylinders
+      ? [{ icon: Cpu, label: "Cylinders", value: String(car.cylinders) }]
+      : []),
+    ...(car.horsepower
+      ? [{ icon: Gauge, label: "Power", value: `${car.horsepower} bhp` }]
+      : []),
     { icon: CarIcon, label: "Body", value: car.bodyType },
+    ...(car.seats
+      ? [{ icon: Users, label: "Seats", value: String(car.seats) }]
+      : []),
+    ...(car.doors
+      ? [{ icon: DoorOpen, label: "Doors", value: String(car.doors) }]
+      : []),
     { icon: Palette, label: "Colour", value: car.colour },
     { icon: ShieldCheck, label: "Condition", value: car.condition },
+    ...(car.registrationStatus
+      ? [{ icon: FileCheck, label: "Registration", value: car.registrationStatus }]
+      : []),
+    ...(car.previousOwners != null
+      ? [
+          {
+            icon: UserRound,
+            label: "Previous owners",
+            value: String(car.previousOwners),
+          },
+        ]
+      : []),
   ];
 
   const similar = cars
