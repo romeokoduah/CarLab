@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Combobox } from "@/components/ui/combobox";
 import {
   Select,
   SelectContent,
@@ -206,32 +207,22 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
         <SectionTitle>Make &amp; model</SectionTitle>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Make" hint="Select or type to add a new make">
-            <Input
+            <Combobox
               value={f.make}
-              list="make-list"
-              onChange={(e) => set("make", e.target.value)}
+              onChange={(v) => set("make", v)}
+              options={ALL_MAKES}
               placeholder="e.g. Toyota, Chery, BYD…"
-              autoComplete="off"
+              addHint="Add make"
             />
-            <datalist id="make-list">
-              {ALL_MAKES.map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
           </Field>
           <Field label="Model" hint="Select or type to add a new model">
-            <Input
+            <Combobox
               value={f.model}
-              list="model-list"
-              onChange={(e) => set("model", e.target.value)}
+              onChange={(v) => set("model", v)}
+              options={modelOptions}
               placeholder="e.g. Corolla, Tiggo 7 Pro…"
-              autoComplete="off"
+              addHint="Add model"
             />
-            <datalist id="model-list">
-              {modelOptions.map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
           </Field>
         </div>
       </section>
@@ -304,18 +295,13 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
             />
           </Field>
           <Field label="Engine capacity" hint="Select or type">
-            <Input
+            <Combobox
               value={f.engineCapacity}
-              list="engine-list"
-              onChange={(e) => set("engineCapacity", e.target.value)}
+              onChange={(v) => set("engineCapacity", v)}
+              options={ENGINE_CAPACITIES}
               placeholder="e.g. 2.0L"
-              autoComplete="off"
+              addHint="Use"
             />
-            <datalist id="engine-list">
-              {ENGINE_CAPACITIES.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
           </Field>
           <Field label="Drivetrain">
             <OptionalSelect

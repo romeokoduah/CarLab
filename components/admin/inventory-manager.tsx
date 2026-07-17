@@ -154,10 +154,10 @@ export function InventoryManager() {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">
+                        <div className="max-w-[46vw] truncate text-sm font-medium sm:max-w-[22rem]">
                           {car.year} {car.make} {car.model}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="truncate text-xs text-muted-foreground">
                           {car.bodyType} · {car.colour}
                         </div>
                       </div>
@@ -229,7 +229,7 @@ export function InventoryManager() {
 
       {/* Add / Edit dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto max-sm:left-0 max-sm:top-0 max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:w-full max-sm:max-w-full max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit listing" : "Add a car"}</DialogTitle>
             <DialogDescription>
