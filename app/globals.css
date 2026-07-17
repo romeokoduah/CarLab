@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light theme */
+    --background: 40 12% 97%;
+    --foreground: 240 6% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 6% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 6% 8%;
+
+    --primary: 240 6% 10%;
+    --primary-foreground: 40 20% 98%;
+
+    --secondary: 40 8% 92%;
+    --secondary-foreground: 240 6% 10%;
+
+    --muted: 40 8% 92%;
+    --muted-foreground: 240 4% 42%;
+
+    --accent: 40 9% 90%;
+    --accent-foreground: 240 6% 10%;
+
+    --destructive: 0 72% 46%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 6% 88%;
+    --input: 240 6% 88%;
+    --ring: 41 44% 48%;
+
+    --gold: 41 46% 46%;
+    --gold-soft: 41 52% 62%;
+
+    --radius: 1rem;
+  }
+
+  .dark {
+    /* Deep near-black showroom theme */
+    --background: 240 6% 4%;
+    --foreground: 40 18% 94%;
+
+    --card: 240 6% 7%;
+    --card-foreground: 40 18% 94%;
+
+    --popover: 240 7% 6%;
+    --popover-foreground: 40 18% 94%;
+
+    --primary: 40 20% 96%;
+    --primary-foreground: 240 8% 6%;
+
+    --secondary: 240 5% 12%;
+    --secondary-foreground: 40 18% 94%;
+
+    --muted: 240 5% 12%;
+    --muted-foreground: 240 5% 60%;
+
+    --accent: 240 5% 14%;
+    --accent-foreground: 40 18% 94%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5% 15%;
+    --input: 240 5% 16%;
+    --ring: 41 52% 58%;
+
+    --gold: 41 58% 60%;
+    --gold-soft: 41 62% 70%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: hsl(var(--gold) / 0.25);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-gold {
+    color: hsl(var(--gold));
+  }
+  /* subtle luxury grain / vignette for hero sections */
+  .showroom-vignette {
+    background:
+      radial-gradient(120% 120% at 50% 0%, transparent 55%, hsl(var(--background)) 100%),
+      radial-gradient(80% 60% at 50% 0%, hsl(var(--gold) / 0.06) 0%, transparent 60%);
+  }
+  .hairline {
+    box-shadow: inset 0 0 0 1px hsl(var(--border));
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
