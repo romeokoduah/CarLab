@@ -11,6 +11,9 @@
 /.next/
 /out/
 
+# uploaded car photos (dev)
+/public/uploads/
+
 # production
 /build
 
