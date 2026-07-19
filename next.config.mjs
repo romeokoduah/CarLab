@@ -6,7 +6,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  trailingSlash: true,
   images: {
     // Uploads are served directly by nginx from /uploads/; no image server.
     unoptimized: true,
