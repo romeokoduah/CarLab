@@ -6,6 +6,7 @@ import { GripVertical, Trash2, UploadCloud, Link2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import type { CarImage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -31,26 +32,35 @@ export function ImageManager({ images, onChange }: Props) {
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setUploading(true);
-    const readers = Array.from(files)
-      .filter((f) => f.type.startsWith("image/"))
-      .map(
-        (file) =>
-          new Promise<CarImage>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () =>
-              resolve({
-                id: genId(),
-                url: String(reader.result),
-                position: 0,
-                alt: file.name.replace(/\.[^.]+$/, ""),
-              });
-            reader.readAsDataURL(file);
-          }),
-      );
-    const added = await Promise.all(readers);
-    onChange(reindex([...images, ...added]));
-    setUploading(false);
-    if (fileRef.current) fileRef.current.value = "";
+    try {
+      const added: CarImage[] = [];
+      for (const file of Array.from(files).filter((f) =>
+        f.type.startsWith("image/"),
+      )) {
+        const form = new FormData();
+        form.append("file", file);
+        const res = await fetch("/api/admin/upload", {
+          method: "POST",
+          body: form,
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          toast.error(data.error ?? `Upload failed for ${file.name}`);
+          continue;
+        }
+        const { url } = await res.json();
+        added.push({
+          id: genId(),
+          url,
+          position: 0,
+          alt: file.name.replace(/\.[^.]+$/, ""),
+        });
+      }
+      if (added.length) onChange(reindex([...images, ...added]));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
 
   const addUrl = () => {

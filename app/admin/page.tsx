@@ -19,6 +19,7 @@ import { DiscountManager } from "@/components/admin/discount-manager";
 import { AnalyticsPanel } from "@/components/admin/analytics-panel";
 import { SettingsForm } from "@/components/admin/settings-form";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useMounted } from "@/lib/hooks";
 
@@ -26,8 +27,16 @@ export default function AdminPage() {
   const mounted = useMounted();
   const email = useAuth((s) => s.email);
   const signOut = useAuth((s) => s.signOut);
+  const checkSession = useAuth((s) => s.checkSession);
+  const [checking, setChecking] = useState(true);
 
-  if (!mounted) {
+  // Restore the session from the httpOnly cookie so a returning admin stays
+  // signed in across reloads.
+  useEffect(() => {
+    checkSession().finally(() => setChecking(false));
+  }, [checkSession]);
+
+  if (!mounted || checking) {
     return (
       <div className="container py-10">
         <Skeleton className="mb-6 h-10 w-48" />

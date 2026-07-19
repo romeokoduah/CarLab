@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { SiteNavbar } from "@/components/site/navbar";
 import { SiteFooter } from "@/components/site/footer";
 import { FloatingWhatsApp } from "@/components/site/floating-whatsapp";
+import { StoreHydrator } from "@/components/providers/store-hydrator";
 import { SITE_CONFIG } from "@/lib/config";
 
 const sora = Sora({
@@ -56,6 +57,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
+          <StoreHydrator />
           <div className="relative flex min-h-screen flex-col">
             <SiteNavbar />
             <main className="flex-1">{children}</main>

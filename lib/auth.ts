@@ -1,41 +1,47 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { ADMIN_CREDENTIALS } from "@/lib/config";
 
 /**
- * Demo authentication for the admin dashboard.
- *
- * This is a client-side gate for the seed/demo build only. For production,
- * replace `signIn` with Supabase Auth (`supabase.auth.signInWithPassword`)
- * and guard admin routes with a server session check / middleware.
+ * Admin auth client. The real session lives in an httpOnly cookie set by the
+ * server (/api/admin/login); this store only mirrors the signed-in email for
+ * the UI. `checkSession` restores it from the cookie on load.
  */
 interface AuthState {
   email: string | null;
-  signIn: (email: string, password: string) => { ok: boolean; error?: string };
-  signOut: () => void;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
+  signOut: () => Promise<void>;
+  checkSession: () => Promise<void>;
 }
 
-export const useAuth = create<AuthState>()(
-  persist(
-    (set) => ({
-      email: null,
-      signIn: (email, password) => {
-        if (!ADMIN_CREDENTIALS.email || !ADMIN_CREDENTIALS.password) {
-          return { ok: false, error: "Admin sign-in is not enabled." };
-        }
-        const okEmail =
-          email.trim().toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase();
-        const okPass = password === ADMIN_CREDENTIALS.password;
-        if (okEmail && okPass) {
-          set({ email: email.trim() });
-          return { ok: true };
-        }
-        return { ok: false, error: "Invalid email or password." };
-      },
-      signOut: () => set({ email: null }),
-    }),
-    { name: "carlab-auth", version: 1 },
-  ),
-);
+export const useAuth = create<AuthState>()((set) => ({
+  email: null,
+
+  signIn: async (email, password) => {
+    const res = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { ok: false, error: data.error ?? "Sign in failed." };
+    }
+    const data = await res.json();
+    set({ email: data.email });
+    return { ok: true };
+  },
+
+  signOut: async () => {
+    await fetch("/api/admin/logout", { method: "POST" });
+    set({ email: null });
+  },
+
+  checkSession: async () => {
+    const res = await fetch("/api/admin/session");
+    set({ email: res.ok ? (await res.json()).email : null });
+  },
+}));

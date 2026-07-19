@@ -16,9 +16,9 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = signIn(email, password);
+    const res = await signIn(email, password);
     if (!res.ok) {
       setError(res.error ?? "Sign in failed.");
     } else {

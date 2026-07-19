@@ -79,10 +79,12 @@ async function replaceImages(carId: string, images: CarImage[]): Promise<void> {
   await pool.query(`DELETE FROM car_images WHERE car_id = $1`, [carId]);
   for (let i = 0; i < images.length; i++) {
     const im = images[i];
+    // Always mint a fresh image id so duplicating a car (or re-saving) can never
+    // collide on the car_images primary key.
     await pool.query(
       `INSERT INTO car_images (id, car_id, url, position, alt)
        VALUES ($1,$2,$3,$4,$5)`,
-      [im.id || `img-${randomUUID()}`, carId, im.url, i, im.alt ?? null],
+      [`img-${randomUUID()}`, carId, im.url, i, im.alt ?? null],
     );
   }
 }
