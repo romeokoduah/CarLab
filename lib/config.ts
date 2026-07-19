@@ -2,8 +2,11 @@
  * Central runtime config. All values are read from NEXT_PUBLIC_* env vars
  * with safe defaults so the app runs out of the box.
  *
- * The GHS→USD rate and WhatsApp number are also editable from the admin
- * Settings screen at runtime (persisted to localStorage). See lib/store.ts.
+ * The GHS→USD rate and WhatsApp number are the build-time defaults; the live
+ * values come from the database (admin Settings screen). See lib/db/settings.ts.
+ *
+ * Admin authentication is fully server-side (see lib/session.ts + the
+ * /api/admin routes) — there are no admin credentials in the client bundle.
  */
 export const SITE_CONFIG = {
   dealerName: process.env.NEXT_PUBLIC_DEALER_NAME || "Eclipse Motors",
@@ -11,9 +14,4 @@ export const SITE_CONFIG = {
   ghsPerUsd: Number(process.env.NEXT_PUBLIC_GHS_PER_USD) || 15.5,
   tagline: "Ghana's premium pre-owned & new car showroom",
   location: "Accra, Ghana",
-} as const;
-
-export const ADMIN_CREDENTIALS = {
-  email: process.env.NEXT_PUBLIC_ADMIN_EMAIL || "",
-  password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "",
 } as const;

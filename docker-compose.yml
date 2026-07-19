@@ -1,0 +1,17 @@
+# Local Postgres that mirrors production, so `npm run dev` / `npm start` work
+# fully offline. Bring up with `docker compose up -d`, then `npm run db:migrate`.
+services:
+  db:
+    image: postgres:16
+    container_name: eclipse-db
+    environment:
+      POSTGRES_DB: eclipse
+      POSTGRES_USER: eclipse
+      POSTGRES_PASSWORD: eclipse
+    ports:
+      - "5432:5432"
+    volumes:
+      - eclipse_pgdata:/var/lib/postgresql/data
+
+volumes:
+  eclipse_pgdata:
