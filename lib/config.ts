@@ -6,7 +6,7 @@
  * Settings screen at runtime (persisted to localStorage). See lib/store.ts.
  */
 export const SITE_CONFIG = {
-  dealerName: process.env.NEXT_PUBLIC_DEALER_NAME || "CarLab",
+  dealerName: process.env.NEXT_PUBLIC_DEALER_NAME || "Eclipse Motors",
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "233201234567",
   ghsPerUsd: Number(process.env.NEXT_PUBLIC_GHS_PER_USD) || 15.5,
   tagline: "Ghana's premium pre-owned & new car showroom",
@@ -14,6 +14,6 @@ export const SITE_CONFIG = {
 } as const;
 
 export const ADMIN_CREDENTIALS = {
-  email: process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@carlab.gh",
-  password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "carlab-admin",
+  email: process.env.NEXT_PUBLIC_ADMIN_EMAIL || "",
+  password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "",
 } as const;

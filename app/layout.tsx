@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     "car dealership",
     SITE_CONFIG.dealerName,
   ],
-  metadataBase: new URL("https://carlab.example"),
+  metadataBase: new URL("https://eclipsemotors.org"),
   openGraph: {
     title: `${SITE_CONFIG.dealerName} — Premium Cars in Ghana`,
     description: SITE_CONFIG.tagline,

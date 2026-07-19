@@ -68,7 +68,7 @@ export function CarDetail({ id: idProp }: { id?: string }) {
   // Keep the browser tab title correct for cars that weren't prebuilt.
   useEffect(() => {
     if (mounted && car) {
-      document.title = `${car.year} ${car.make} ${car.model} — CarLab`;
+      document.title = `${car.year} ${car.make} ${car.model} — Eclipse Motors`;
     }
   }, [mounted, car]);
 

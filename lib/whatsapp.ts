@@ -18,7 +18,7 @@ export function buildWhatsAppLink({
   listingUrl,
   priceLabel,
   discountCode,
-  dealerName = "CarLab",
+  dealerName = "Eclipse Motors",
 }: WhatsAppOpts): string {
   const title = `${car.year} ${car.make} ${car.model}`;
   const lines = [
@@ -36,7 +36,7 @@ export function buildWhatsAppLink({
 }
 
 /** Simple generic contact link (floating button, footer). */
-export function buildGenericWhatsAppLink(number: string, dealerName = "CarLab"): string {
+export function buildGenericWhatsAppLink(number: string, dealerName = "Eclipse Motors"): string {
   const text = encodeURIComponent(
     `Hi ${dealerName}, I'd like to know more about your available cars.`,
   );

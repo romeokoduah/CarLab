@@ -6,7 +6,7 @@ import { CarGridSkeleton } from "@/components/site/car-card-skeleton";
 export const metadata: Metadata = {
   title: "Inventory",
   description:
-    "Browse the full CarLab inventory. Filter by make, model, body type, price, year and more.",
+    "Browse the full Eclipse Motors inventory. Filter by make, model, body type, price, year and more.",
 };
 
 export default function InventoryPage() {

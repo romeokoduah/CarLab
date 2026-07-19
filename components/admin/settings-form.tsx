@@ -39,7 +39,7 @@ export function SettingsForm() {
       return;
     }
     updateSettings({
-      dealerName: dealerName.trim() || "CarLab",
+      dealerName: dealerName.trim() || "Eclipse Motors",
       whatsappNumber: whatsappNumber.replace(/\D/g, ""),
       ghsPerUsd: numRate,
     });
@@ -121,7 +121,7 @@ export function SettingsForm() {
               variant="destructive"
               onClick={() => {
                 resetData();
-                setDealerName("CarLab");
+                setDealerName("Eclipse Motors");
                 setResetOpen(false);
                 toast.success("Demo data reset");
               }}
