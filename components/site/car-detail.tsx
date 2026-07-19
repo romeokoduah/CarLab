@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -36,13 +37,25 @@ import { useMounted } from "@/lib/hooks";
 import { formatMileage } from "@/lib/utils";
 import type { Car, DiscountResult } from "@/lib/types";
 
-export function CarDetail({ id }: { id: string }) {
+/** Pull the car id out of a `/car/<id>/` pathname (URL-decoded, slash-tolerant). */
+function idFromPathname(pathname: string | null): string | undefined {
+  if (!pathname) return undefined;
+  const seg = pathname.split("/").filter(Boolean).pop();
+  return seg ? decodeURIComponent(seg) : undefined;
+}
+
+export function CarDetail({ id: idProp }: { id?: string }) {
+  const pathname = usePathname();
   const mounted = useMounted();
   const cars = useStore((s) => s.cars);
   const recordEvent = useStore((s) => s.recordEvent);
   const viewed = useRef(false);
   const [discount, setDiscount] = useState<DiscountResult | null>(null);
 
+  // Prefer the id from the live URL so a single fallback page can render ANY
+  // car — including ones added in the admin after the static build. The
+  // build-time prop stays as the fallback for prerendered seed pages.
+  const id = (mounted ? idFromPathname(pathname) : undefined) ?? idProp ?? "";
   const car = cars.find((c) => c.id === id);
 
   useEffect(() => {
@@ -51,6 +64,13 @@ export function CarDetail({ id }: { id: string }) {
       recordEvent(car.id, "view");
     }
   }, [mounted, car, recordEvent]);
+
+  // Keep the browser tab title correct for cars that weren't prebuilt.
+  useEffect(() => {
+    if (mounted && car) {
+      document.title = `${car.year} ${car.make} ${car.model} — CarLab`;
+    }
+  }, [mounted, car]);
 
   if (!mounted) return <DetailSkeleton />;
 
