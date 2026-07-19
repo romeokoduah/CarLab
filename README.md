@@ -1,4 +1,4 @@
-# CarLab
+# Eclipse Motors
 
 A premium, mobile-first **car sales platform** for a Ghana-based dealer. It pairs a
 cinematic public storefront with a private admin dashboard for managing inventory,
@@ -71,15 +71,14 @@ npm run lint        # next lint
 The app ships with **bundled seed data** (10 sample cars, 4 discount codes) and works
 fully out of the box — no database or API keys required.
 
-### Admin login (demo)
+### Admin login
 
-Open [`/admin`](http://localhost:3000/admin) and sign in with the demo credentials
-(also available via the "Use demo credentials" button):
+In production, `/admin` is protected at the server (nginx HTTP Basic Auth) and is
+not indexed by search engines. Ask the site owner for credentials.
 
-```
-Email:    admin@carlab.gh
-Password: carlab-admin
-```
+For local development you may optionally enable the in-app client login by setting
+`NEXT_PUBLIC_ADMIN_EMAIL` and `NEXT_PUBLIC_ADMIN_PASSWORD` in `.env.local`. Never
+set real secrets in `NEXT_PUBLIC_*` vars — they ship in the browser bundle.
 
 ---
 
@@ -91,10 +90,10 @@ to `.env.local` to override.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | `233201234567` | Dealer WhatsApp number, **digits only** (country code + number, no `+`). Used by every WhatsApp button. |
-| `NEXT_PUBLIC_DEALER_NAME` | `CarLab` | Dealership name shown across the site. |
+| `NEXT_PUBLIC_DEALER_NAME` | `Eclipse Motors` | Dealership name shown across the site. |
 | `NEXT_PUBLIC_GHS_PER_USD` | `15.5` | GHS→USD rate for the currency toggle (1 USD = this many GHS). |
-| `NEXT_PUBLIC_ADMIN_EMAIL` | `admin@carlab.gh` | Demo admin email. |
-| `NEXT_PUBLIC_ADMIN_PASSWORD` | `carlab-admin` | Demo admin password. |
+| `NEXT_PUBLIC_ADMIN_EMAIL` | _(unset)_ | Optional local-dev client login email. Leave unset in production. |
+| `NEXT_PUBLIC_ADMIN_PASSWORD` | _(unset)_ | Optional local-dev client login password. Leave unset in production. |
 
 ### Setting the WhatsApp number
 

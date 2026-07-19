@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/site/logo";
 import { useAuth } from "@/lib/auth";
-import { ADMIN_CREDENTIALS } from "@/lib/config";
 
 export function LoginForm() {
   const signIn = useAuth((s) => s.signIn);
@@ -26,11 +25,6 @@ export function LoginForm() {
       setError(null);
       router.refresh();
     }
-  };
-
-  const fillDemo = () => {
-    setEmail(ADMIN_CREDENTIALS.email);
-    setPassword(ADMIN_CREDENTIALS.password);
   };
 
   return (
@@ -61,7 +55,7 @@ export function LoginForm() {
               autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@carlab.gh"
+              placeholder="you@eclipsemotors.org"
               required
             />
           </div>
@@ -83,18 +77,10 @@ export function LoginForm() {
           <Button type="submit" variant="gold" className="w-full">
             <LogIn className="h-4 w-4" /> Sign in
           </Button>
-
-          <button
-            type="button"
-            onClick={fillDemo}
-            className="w-full text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Use demo credentials
-          </button>
         </form>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          Demo auth for this build. Swap in Supabase Auth for production.
+          Authorised access only.
         </p>
       </div>
     </div>

@@ -22,6 +22,9 @@ export const useAuth = create<AuthState>()(
     (set) => ({
       email: null,
       signIn: (email, password) => {
+        if (!ADMIN_CREDENTIALS.email || !ADMIN_CREDENTIALS.password) {
+          return { ok: false, error: "Admin sign-in is not enabled." };
+        }
         const okEmail =
           email.trim().toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase();
         const okPass = password === ADMIN_CREDENTIALS.password;
