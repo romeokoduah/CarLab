@@ -48,14 +48,14 @@ export function CarCard({ car }: { car: Car }) {
         <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
           <Badge
             variant="default"
-            className="bg-black/60 text-white backdrop-blur-md"
+            className="bg-black/70 text-white"
           >
             <Images className="h-3 w-3" /> {car.images.length}
           </Badge>
           {car.verified && (
             <Badge
               variant="default"
-              className="bg-black/60 text-emerald-300 backdrop-blur-md"
+              className="bg-black/70 text-emerald-300"
             >
               <BadgeCheck className="h-3 w-3" /> Verified
             </Badge>

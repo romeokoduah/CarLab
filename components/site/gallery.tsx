@@ -83,7 +83,7 @@ export function Gallery({ images, title, videoUrl }: GalleryProps) {
             <button
               onClick={() => setLightbox(true)}
               aria-label="Open full-screen gallery"
-              className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white backdrop-blur transition-colors hover:bg-black/70"
+              className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/70 text-white transition-colors hover:bg-black/70"
             >
               <Expand className="h-4 w-4" />
             </button>
@@ -92,7 +92,7 @@ export function Gallery({ images, title, videoUrl }: GalleryProps) {
               <>
                 <NavArrow dir="left" onClick={() => go(-1)} />
                 <NavArrow dir="right" onClick={() => go(1)} />
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-2.5 py-1 text-xs text-white backdrop-blur">
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-2.5 py-1 text-xs text-white">
                   {active + 1} / {count}
                 </div>
               </>
@@ -215,7 +215,7 @@ function NavArrow({
       onClick={onClick}
       aria-label={dir === "left" ? "Previous photo" : "Next photo"}
       className={cn(
-        "absolute top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full backdrop-blur transition-colors",
+        "absolute top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full transition-colors",
         dir === "left" ? "left-3" : "right-3",
         light
           ? "bg-white/10 text-white hover:bg-white/20"

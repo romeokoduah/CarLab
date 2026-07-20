@@ -33,7 +33,9 @@ export function FavouriteButton({ carId, carTitle, className, size = "md" }: Pro
         });
       }}
       className={cn(
-        "grid place-items-center rounded-full border border-border/60 bg-background/70 backdrop-blur-md transition-all hover:scale-105 active:scale-95",
+        // Solid rather than blurred: these scroll with the page, and a
+        // backdrop blur forces a re-composite on every frame.
+        "grid place-items-center rounded-full border border-border/60 bg-background/90 transition-all hover:scale-105 active:scale-95",
         size === "md" ? "h-9 w-9" : "h-8 w-8",
         className,
       )}
