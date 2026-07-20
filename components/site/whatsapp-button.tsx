@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { formatPrice } from "@/lib/currency";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/site/whatsapp-icon";
+import { EnquiryGate } from "@/components/site/enquiry-gate";
+import { getStoredReference, sendBeacon } from "@/lib/customer";
 import type { Car } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +33,12 @@ export function WhatsAppButton({
   const mounted = useMounted();
   const settings = useStore((s) => s.settings);
   const currency = useStore((s) => s.currency);
-  const recordEvent = useStore((s) => s.recordEvent);
+  const [reference, setReference] = useState<string | null>(null);
+  const [gateOpen, setGateOpen] = useState(false);
+
+  useEffect(() => {
+    setReference(getStoredReference());
+  }, []);
 
   const priceGhs = finalPriceGhs ?? car.priceGhs;
   const priceLabel = formatPrice(
@@ -39,38 +47,64 @@ export function WhatsAppButton({
     settings.ghsPerUsd,
   );
 
-  const listingUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/car/${car.id}`
-      : `/car/${car.id}`;
+  const buildHref = (ref: string) => {
+    const listingUrl =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/car/${car.id}`
+        : `/car/${car.id}`;
+    return buildWhatsAppLink({
+      number: settings.whatsappNumber,
+      car,
+      listingUrl,
+      priceLabel,
+      discountCode,
+      dealerName: settings.dealerName,
+      reference: ref,
+    });
+  };
 
-  const href = mounted
-    ? buildWhatsAppLink({
-        number: settings.whatsappNumber,
-        car,
-        listingUrl,
-        priceLabel,
-        discountCode,
-        dealerName: settings.dealerName,
-      })
-    : "#";
+  // Known customer: render a real link so the browser opens WhatsApp as a
+  // direct user action, and log the enquiry with a non-blocking beacon.
+  if (mounted && reference) {
+    return (
+      <Button
+        asChild
+        variant="whatsapp"
+        className={cn(fullWidth && "w-full", className)}
+        {...rest}
+      >
+        <a
+          href={buildHref(reference)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() =>
+            sendBeacon("/api/leads/lookup", { reference, carId: car.id })
+          }
+        >
+          <WhatsAppIcon className="h-[1.05rem] w-[1.05rem]" />
+          {label}
+        </a>
+      </Button>
+    );
+  }
 
   return (
-    <Button
-      asChild
-      variant="whatsapp"
-      className={cn(fullWidth && "w-full", className)}
-      {...rest}
-    >
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => recordEvent(car.id, "whatsapp_click")}
+    <>
+      <Button
+        variant="whatsapp"
+        className={cn(fullWidth && "w-full", className)}
+        onClick={() => setGateOpen(true)}
+        {...rest}
       >
         <WhatsAppIcon className="h-[1.05rem] w-[1.05rem]" />
         {label}
-      </a>
-    </Button>
+      </Button>
+      <EnquiryGate
+        open={gateOpen}
+        onOpenChange={setGateOpen}
+        carId={car.id}
+        buildHref={buildHref}
+      />
+    </>
   );
 }

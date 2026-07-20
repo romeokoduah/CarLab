@@ -9,6 +9,8 @@ interface WhatsAppOpts {
   priceLabel: string;
   discountCode?: string;
   dealerName?: string;
+  /** Customer tracking reference, so it lives in their chat history. */
+  reference?: string;
 }
 
 /** Build a wa.me deep link with a pre-filled, human-sounding message. */
@@ -19,6 +21,7 @@ export function buildWhatsAppLink({
   priceLabel,
   discountCode,
   dealerName = "Eclipse Motors",
+  reference,
 }: WhatsAppOpts): string {
   const title = `${car.year} ${car.make} ${car.model}`;
   const lines = [
@@ -26,6 +29,9 @@ export function buildWhatsAppLink({
     `Price: ${priceLabel}`,
     discountCode ? `I have a discount code: ${discountCode}` : null,
     `Listing: ${listingUrl}`,
+    // Carried in the message so the customer always has their reference in
+    // chat history, and the dealer knows immediately who is writing.
+    reference ? `Ref: ${reference}` : null,
     ``,
     `Is it still available?`,
   ].filter(Boolean);

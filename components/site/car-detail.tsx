@@ -34,6 +34,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { formatMileage } from "@/lib/utils";
+import { getSessionKey, sendBeacon } from "@/lib/customer";
 import type { Car, DiscountResult } from "@/lib/types";
 
 export function CarDetail({
@@ -58,6 +59,13 @@ export function CarDetail({
     if (car && !viewed.current) {
       viewed.current = true;
       recordEvent(car.id, "view");
+      // Server-side view count. Sent from the browser so crawlers don't inflate
+      // it, keyed by an anonymous token (never an IP).
+      sendBeacon("/api/events", {
+        carId: car.id,
+        type: "view",
+        sessionKey: getSessionKey(),
+      });
     }
   }, [car, recordEvent]);
 

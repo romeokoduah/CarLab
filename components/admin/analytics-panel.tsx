@@ -1,155 +1,148 @@
 "use client";
 
-import { useMemo } from "react";
-import { Eye, Heart, MessageCircle, TrendingUp } from "lucide-react";
-import { NumberTicker } from "@/components/magicui/number-ticker";
-import { useStore } from "@/lib/store";
-import { useMounted } from "@/lib/hooks";
-import type { AnalyticsEventType } from "@/lib/types";
+import { useEffect, useState } from "react";
+import { Eye, MessageCircle, Users, UserPlus } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+
+/**
+ * Server-backed statistics. The previous version counted events held in the
+ * admin's own browser, so it only ever showed that one device's activity.
+ */
+interface CarStat {
+  carId: string;
+  label: string;
+  views: number;
+  enquiries: number;
+  people: number;
+}
+interface Stats {
+  days: number;
+  totalViews: number;
+  totalEnquiries: number;
+  totalPeople: number;
+  newLeads: number;
+  cars: CarStat[];
+}
 
 export function AnalyticsPanel() {
-  const mounted = useMounted();
-  const cars = useStore((s) => s.cars);
-  const analytics = useStore((s) => s.analytics);
-  const favourites = useStore((s) => s.favourites);
+  const [days, setDays] = useState("30");
+  const [stats, setStats] = useState<Stats | null>(null);
 
-  const stats = useMemo(() => {
-    const per: Record<
-      string,
-      { view: number; favourite: number; whatsapp_click: number }
-    > = {};
-    for (const c of cars) per[c.id] = { view: 0, favourite: 0, whatsapp_click: 0 };
-    for (const e of analytics) {
-      if (per[e.carId]) per[e.carId][e.type] += 1;
-    }
-    const totals = analytics.reduce(
-      (acc, e) => {
-        acc[e.type] += 1;
-        return acc;
-      },
-      { view: 0, favourite: 0, whatsapp_click: 0 } as Record<
-        AnalyticsEventType,
-        number
-      >,
-    );
-    const rank = (key: keyof (typeof per)[string]) =>
-      [...cars]
-        .map((c) => ({ car: c, n: per[c.id]?.[key] ?? 0 }))
-        .sort((a, b) => b.n - a.n)
-        .slice(0, 5);
+  useEffect(() => {
+    setStats(null);
+    fetch(`/api/admin/stats?days=${days}`)
+      .then((r) => r.json())
+      .then((d) => setStats(d.stats))
+      .catch(() => toast.error("Could not load statistics."));
+  }, [days]);
 
-    return {
-      totals,
-      views: rank("view"),
-      whats: rank("whatsapp_click"),
-      favs: [...cars]
-        .map((c) => ({ car: c, n: favourites.includes(c.id) ? 1 : 0 }))
-        .filter((r) => r.n > 0)
-        .concat(
-          [...cars]
-            .map((c) => ({ car: c, n: per[c.id]?.favourite ?? 0 }))
-            .filter((r) => r.n > 0),
-        )
-        .sort((a, b) => b.n - a.n)
-        .slice(0, 5),
-    };
-  }, [cars, analytics, favourites]);
-
-  const cards = [
-    { label: "Total views", value: stats.totals.view, icon: Eye },
-    {
-      label: "WhatsApp clicks",
-      value: stats.totals.whatsapp_click,
-      icon: MessageCircle,
-    },
-    { label: "Favourites", value: stats.totals.favourite, icon: Heart },
+  const tiles = [
+    { label: "Listing views", value: stats?.totalViews, icon: Eye },
+    { label: "Enquiries", value: stats?.totalEnquiries, icon: MessageCircle },
+    { label: "People enquiring", value: stats?.totalPeople, icon: Users },
+    { label: "New customers", value: stats?.newLeads, icon: UserPlus },
   ];
 
+  const ranked = (stats?.cars ?? []).filter(
+    (c) => c.views > 0 || c.enquiries > 0,
+  );
+
   return (
-    <div>
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {cards.map((c) => (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          Which cars people are looking at and asking about.
+        </p>
+        <Select value={days} onValueChange={setDays}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7">Last 7 days</SelectItem>
+            <SelectItem value="30">Last 30 days</SelectItem>
+            <SelectItem value="90">Last 90 days</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {tiles.map((t) => (
           <div
-            key={c.label}
+            key={t.label}
             className="rounded-2xl border border-border bg-card p-5"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{c.label}</span>
-              <c.icon className="h-4 w-4 text-gold" />
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+              <t.icon className="h-3.5 w-3.5" />
+              {t.label}
             </div>
-            <div className="mt-2 text-3xl font-semibold">
-              {mounted ? <NumberTicker value={c.value} /> : 0}
-            </div>
+            {t.value === undefined ? (
+              <Skeleton className="mt-3 h-8 w-16" />
+            ) : (
+              <p className="mt-2 text-3xl font-semibold tabular-nums">
+                {t.value.toLocaleString("en-GH")}
+              </p>
+            )}
           </div>
         ))}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <RankList
-          title="Most viewed"
-          icon={<TrendingUp className="h-4 w-4 text-gold" />}
-          rows={stats.views}
-          suffix="views"
-        />
-        <RankList
-          title="Most WhatsApp enquiries"
-          icon={<MessageCircle className="h-4 w-4 text-gold" />}
-          rows={stats.whats}
-          suffix="clicks"
-        />
-      </div>
+      <div className="rounded-2xl border border-border bg-card">
+        <div className="border-b border-border px-5 py-4">
+          <h3 className="text-sm font-semibold">Most popular listings</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            &ldquo;People&rdquo; counts distinct customers, so one person
+            enquiring repeatedly doesn&apos;t look like demand.
+          </p>
+        </div>
 
-      <p className="mt-5 text-xs text-muted-foreground">
-        Analytics are collected on this device as you browse the storefront
-        (views, favourites and WhatsApp clicks). Wire these events to your
-        backend to aggregate across all visitors.
-      </p>
-    </div>
-  );
-}
-
-function RankList({
-  title,
-  icon,
-  rows,
-  suffix,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  rows: { car: { id: string; year: number; make: string; model: string }; n: number }[];
-  suffix: string;
-}) {
-  const has = rows.some((r) => r.n > 0);
-  return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <div className="mb-4 flex items-center gap-2">
-        {icon}
-        <h3 className="font-semibold">{title}</h3>
+        {!stats ? (
+          <div className="space-y-3 p-5">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : ranked.length === 0 ? (
+          <p className="px-5 py-12 text-center text-sm text-muted-foreground">
+            No activity in this period yet.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="px-5 py-3 font-medium">Vehicle</th>
+                  <th className="px-3 py-3 text-right font-medium">Views</th>
+                  <th className="px-3 py-3 text-right font-medium">Enquiries</th>
+                  <th className="px-5 py-3 text-right font-medium">People</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ranked.map((c) => (
+                  <tr key={c.carId} className="border-b border-border/60">
+                    <td className="px-5 py-3 font-medium">{c.label}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {c.views}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {c.enquiries}
+                    </td>
+                    <td className="px-5 py-3 text-right font-semibold tabular-nums text-gold">
+                      {c.people}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
-      {!has ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">
-          No activity yet. Browse the storefront to generate data.
-        </p>
-      ) : (
-        <ul className="space-y-3">
-          {rows
-            .filter((r) => r.n > 0)
-            .map((r, i) => (
-              <li key={r.car.id} className="flex items-center gap-3">
-                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-secondary text-xs font-medium">
-                  {i + 1}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-sm">
-                  {r.car.year} {r.car.make} {r.car.model}
-                </span>
-                <span className="text-sm font-medium tabular-nums">
-                  {r.n}{" "}
-                  <span className="text-xs text-muted-foreground">{suffix}</span>
-                </span>
-              </li>
-            ))}
-        </ul>
-      )}
     </div>
   );
 }

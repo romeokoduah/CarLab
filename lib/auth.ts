@@ -7,8 +7,11 @@ import { create } from "zustand";
  * server (/api/admin/login); this store only mirrors the signed-in email for
  * the UI. `checkSession` restores it from the cookie on load.
  */
+export type AdminRole = "super_admin" | "admin";
+
 interface AuthState {
   email: string | null;
+  role: AdminRole | null;
   signIn: (
     email: string,
     password: string,
@@ -19,6 +22,7 @@ interface AuthState {
 
 export const useAuth = create<AuthState>()((set) => ({
   email: null,
+  role: null,
 
   signIn: async (email, password) => {
     const res = await fetch("/api/admin/login", {
@@ -31,17 +35,22 @@ export const useAuth = create<AuthState>()((set) => ({
       return { ok: false, error: data.error ?? "Sign in failed." };
     }
     const data = await res.json();
-    set({ email: data.email });
+    set({ email: data.email, role: data.role ?? "admin" });
     return { ok: true };
   },
 
   signOut: async () => {
     await fetch("/api/admin/logout", { method: "POST" });
-    set({ email: null });
+    set({ email: null, role: null });
   },
 
   checkSession: async () => {
     const res = await fetch("/api/admin/session");
-    set({ email: res.ok ? (await res.json()).email : null });
+    if (!res.ok) {
+      set({ email: null, role: null });
+      return;
+    }
+    const data = await res.json();
+    set({ email: data.email, role: data.role ?? "admin" });
   },
 }));

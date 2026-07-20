@@ -7,6 +7,9 @@ import {
   BarChart3,
   Settings as SettingsIcon,
   Calculator,
+  Users,
+  BookmarkCheck,
+  ShieldCheck,
   LogOut,
   ExternalLink,
 } from "lucide-react";
@@ -20,6 +23,10 @@ import { DiscountManager } from "@/components/admin/discount-manager";
 import { AnalyticsPanel } from "@/components/admin/analytics-panel";
 import { SettingsForm } from "@/components/admin/settings-form";
 import { DutyRatesForm } from "@/components/admin/duty-rates-form";
+import { LeadsPanel } from "@/components/admin/leads-panel";
+import { ReservationsPanel } from "@/components/admin/reservations-panel";
+import { AdminsPanel } from "@/components/admin/admins-panel";
+import { PasswordForm } from "@/components/admin/password-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -28,6 +35,7 @@ import { useMounted } from "@/lib/hooks";
 export default function AdminPage() {
   const mounted = useMounted();
   const email = useAuth((s) => s.email);
+  const role = useAuth((s) => s.role);
   const signOut = useAuth((s) => s.signOut);
   const checkSession = useAuth((s) => s.checkSession);
   const [checking, setChecking] = useState(true);
@@ -48,6 +56,8 @@ export default function AdminPage() {
   }
 
   if (!email) return <LoginForm />;
+
+  const isSuper = role === "super_admin";
 
   return (
     <div>
@@ -106,17 +116,39 @@ export default function AdminPage() {
               <Tag className="h-4 w-4" /> Discounts
             </TabsTrigger>
             <TabsTrigger
+              value="customers"
+              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+            >
+              <Users className="h-4 w-4" /> Customers
+            </TabsTrigger>
+            <TabsTrigger
+              value="reservations"
+              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+            >
+              <BookmarkCheck className="h-4 w-4" /> Reservations
+            </TabsTrigger>
+            <TabsTrigger
               value="analytics"
               className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
             >
               <BarChart3 className="h-4 w-4" /> Analytics
             </TabsTrigger>
-            <TabsTrigger
-              value="duty"
-              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
-            >
-              <Calculator className="h-4 w-4" /> Duty rates
-            </TabsTrigger>
+            {isSuper && (
+              <TabsTrigger
+                value="duty"
+                className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+              >
+                <Calculator className="h-4 w-4" /> Duty rates
+              </TabsTrigger>
+            )}
+            {isSuper && (
+              <TabsTrigger
+                value="admins"
+                className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+              >
+                <ShieldCheck className="h-4 w-4" /> Admins
+              </TabsTrigger>
+            )}
             <TabsTrigger
               value="settings"
               className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
@@ -131,14 +163,31 @@ export default function AdminPage() {
           <TabsContent value="discounts">
             <DiscountManager />
           </TabsContent>
+          <TabsContent value="customers">
+            <LeadsPanel />
+          </TabsContent>
+          <TabsContent value="reservations">
+            <ReservationsPanel />
+          </TabsContent>
           <TabsContent value="analytics">
             <AnalyticsPanel />
           </TabsContent>
-          <TabsContent value="duty">
-            <DutyRatesForm />
-          </TabsContent>
+          {isSuper && (
+            <TabsContent value="duty">
+              <DutyRatesForm />
+            </TabsContent>
+          )}
+          {isSuper && (
+            <TabsContent value="admins">
+              <AdminsPanel currentEmail={email} />
+            </TabsContent>
+          )}
           <TabsContent value="settings">
-            <SettingsForm />
+            <div className="space-y-6">
+              {/* Site settings are super-admin only; password change is for all. */}
+              {isSuper && <SettingsForm />}
+              <PasswordForm />
+            </div>
           </TabsContent>
         </Tabs>
       </div>
