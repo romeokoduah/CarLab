@@ -58,6 +58,15 @@ CREATE TABLE IF NOT EXISTS settings (
   CONSTRAINT settings_singleton CHECK (id = 1)
 );
 
+-- Import-duty rate table (single row). Editable from the admin so rates can be
+-- updated each national budget without a code change.
+CREATE TABLE IF NOT EXISTS duty_config (
+  id         int PRIMARY KEY DEFAULT 1,
+  config     jsonb NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT duty_config_singleton CHECK (id = 1)
+);
+
 CREATE TABLE IF NOT EXISTS admin_users (
   id            text PRIMARY KEY,
   email         text UNIQUE NOT NULL,

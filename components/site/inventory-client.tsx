@@ -24,7 +24,7 @@ import { FilterChips } from "@/components/site/filter-chips";
 import { CarGrid } from "@/components/site/car-grid";
 import { CarGridSkeleton } from "@/components/site/car-card-skeleton";
 import { useStore } from "@/lib/store";
-import { useMounted, useDebounced } from "@/lib/hooks";
+import { useDebounced } from "@/lib/hooks";
 import {
   EMPTY_FILTERS,
   applyFilters,
@@ -70,13 +70,20 @@ function facetCounts(cars: Car[], filters: Filters) {
   return map;
 }
 
-export function InventoryClient() {
-  const mounted = useMounted();
+export function InventoryClient({
+  initialCars = [],
+}: {
+  initialCars?: Car[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlQuery = searchParams.toString();
 
-  const cars = useStore((s) => s.cars);
+  const storeCars = useStore((s) => s.cars);
+  const hydrated = useStore((s) => s.hydrated);
+  // Render server-provided cars immediately; swap to the store once loaded.
+  const cars = hydrated ? storeCars : initialCars;
+  const ready = hydrated || initialCars.length > 0;
 
   const [filters, setFilters] = useState<Filters>(() =>
     parseFilters(new URLSearchParams(urlQuery)),
@@ -136,7 +143,7 @@ export function InventoryClient() {
           Inventory
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          {mounted ? (
+          {ready ? (
             <>
               <span className="font-medium text-foreground">
                 {results.length}
@@ -265,7 +272,7 @@ export function InventoryClient() {
 
         {/* Results */}
         <div className="min-w-0 flex-1">
-          {!mounted ? (
+          {!ready ? (
             <CarGridSkeleton count={6} />
           ) : results.length > 0 ? (
             <CarGrid cars={results} />

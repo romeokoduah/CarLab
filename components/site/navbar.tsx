@@ -20,10 +20,12 @@ import { useStore } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 
+// Public navigation. /admin is deliberately not linked here — it's reached by
+// direct URL and protected by a real server-side login.
 const LINKS = [
   { href: "/inventory", label: "Inventory" },
+  { href: "/duty-calculator", label: "Duty calculator" },
   { href: "/favourites", label: "Favourites" },
-  { href: "/admin", label: "Admin" },
 ];
 
 export function SiteNavbar() {

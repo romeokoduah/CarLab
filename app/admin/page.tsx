@@ -6,6 +6,7 @@ import {
   Tag,
   BarChart3,
   Settings as SettingsIcon,
+  Calculator,
   LogOut,
   ExternalLink,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import { InventoryManager } from "@/components/admin/inventory-manager";
 import { DiscountManager } from "@/components/admin/discount-manager";
 import { AnalyticsPanel } from "@/components/admin/analytics-panel";
 import { SettingsForm } from "@/components/admin/settings-form";
+import { DutyRatesForm } from "@/components/admin/duty-rates-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -110,6 +112,12 @@ export default function AdminPage() {
               <BarChart3 className="h-4 w-4" /> Analytics
             </TabsTrigger>
             <TabsTrigger
+              value="duty"
+              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+            >
+              <Calculator className="h-4 w-4" /> Duty rates
+            </TabsTrigger>
+            <TabsTrigger
               value="settings"
               className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
             >
@@ -125,6 +133,9 @@ export default function AdminPage() {
           </TabsContent>
           <TabsContent value="analytics">
             <AnalyticsPanel />
+          </TabsContent>
+          <TabsContent value="duty">
+            <DutyRatesForm />
           </TabsContent>
           <TabsContent value="settings">
             <SettingsForm />

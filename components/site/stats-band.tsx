@@ -2,16 +2,18 @@
 
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { useStore } from "@/lib/store";
-import { useMounted } from "@/lib/hooks";
+import type { Car } from "@/lib/types";
 
-export function StatsBand() {
-  const mounted = useMounted();
-  const cars = useStore((s) => s.cars);
+export function StatsBand({ initialCars = [] }: { initialCars?: Car[] }) {
+  const storeCars = useStore((s) => s.cars);
+  const hydrated = useStore((s) => s.hydrated);
 
-  const available = mounted
-    ? cars.filter((c) => c.status !== "Sold").length
-    : 10;
-  const sold = mounted ? cars.filter((c) => c.status === "Sold").length : 240;
+  // Server-provided cars render immediately (and match the first client
+  // render), so the counters never flash a placeholder value.
+  const cars = hydrated ? storeCars : initialCars;
+
+  const available = cars.filter((c) => c.status !== "Sold").length;
+  const sold = cars.filter((c) => c.status === "Sold").length;
 
   const stats = [
     { label: "Cars available", value: available, suffix: "" },

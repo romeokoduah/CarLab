@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { FavouriteButton } from "@/components/site/favourite-button";
 import { Price } from "@/components/site/price";
 import { useStore } from "@/lib/store";
-import { useMounted } from "@/lib/hooks";
 import { formatMileage } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { Car } from "@/lib/types";
@@ -93,13 +92,15 @@ function FeaturedTile({ car, large }: { car: Car; large?: boolean }) {
   );
 }
 
-export function FeaturedCars() {
-  const mounted = useMounted();
-  const cars = useStore((s) => s.cars);
+export function FeaturedCars({ initialCars = [] }: { initialCars?: Car[] }) {
+  const storeCars = useStore((s) => s.cars);
+  const hydrated = useStore((s) => s.hydrated);
 
-  const featured = mounted
-    ? cars.filter((c) => c.status !== "Sold").slice(0, 5)
-    : [];
+  // Server-provided cars render immediately and match the first client render;
+  // once the store has loaded we switch to it so admin edits show live.
+  const cars = hydrated ? storeCars : initialCars;
+  const featured = cars.filter((c) => c.status !== "Sold").slice(0, 5);
+  const showSkeleton = !hydrated && initialCars.length === 0;
 
   return (
     <section className="container py-20">
@@ -122,7 +123,7 @@ export function FeaturedCars() {
         </Link>
       </div>
 
-      {!mounted ? (
+      {showSkeleton ? (
         <BentoGrid>
           <Skeleton className="h-full rounded-2xl sm:col-span-2 sm:row-span-2" />
           <Skeleton className="h-full rounded-2xl" />

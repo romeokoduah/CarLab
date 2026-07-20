@@ -37,42 +37,32 @@ import { useMounted } from "@/lib/hooks";
 import { formatMileage } from "@/lib/utils";
 import type { Car, DiscountResult } from "@/lib/types";
 
-/** Pull the car id out of a `/car/<id>/` pathname (URL-decoded, slash-tolerant). */
-function idFromPathname(pathname: string | null): string | undefined {
-  if (!pathname) return undefined;
-  const seg = pathname.split("/").filter(Boolean).pop();
-  return seg ? decodeURIComponent(seg) : undefined;
-}
-
-export function CarDetail({ id: idProp }: { id?: string }) {
-  const pathname = usePathname();
-  const mounted = useMounted();
-  const cars = useStore((s) => s.cars);
+export function CarDetail({
+  id,
+  initialCar,
+}: {
+  id: string;
+  initialCar?: Car;
+}) {
+  const storeCars = useStore((s) => s.cars);
+  const hydrated = useStore((s) => s.hydrated);
   const recordEvent = useStore((s) => s.recordEvent);
   const viewed = useRef(false);
   const [discount, setDiscount] = useState<DiscountResult | null>(null);
 
-  // Prefer the id from the live URL so a single fallback page can render ANY
-  // car — including ones added in the admin after the static build. The
-  // build-time prop stays as the fallback for prerendered seed pages.
-  const id = (mounted ? idFromPathname(pathname) : undefined) ?? idProp ?? "";
-  const car = cars.find((c) => c.id === id);
+  // The server already resolved this car, so it paints immediately; once the
+  // store has loaded we prefer it so admin edits appear without a reload.
+  const car = (hydrated ? storeCars.find((c) => c.id === id) : undefined)
+    ?? initialCar;
 
   useEffect(() => {
-    if (mounted && car && !viewed.current) {
+    if (car && !viewed.current) {
       viewed.current = true;
       recordEvent(car.id, "view");
     }
-  }, [mounted, car, recordEvent]);
+  }, [car, recordEvent]);
 
-  // Keep the browser tab title correct for cars that weren't prebuilt.
-  useEffect(() => {
-    if (mounted && car) {
-      document.title = `${car.year} ${car.make} ${car.model} — Eclipse Motors`;
-    }
-  }, [mounted, car]);
-
-  if (!mounted) return <DetailSkeleton />;
+  if (!car && !hydrated && !initialCar) return <DetailSkeleton />;
 
   if (!car) {
     return (
@@ -135,7 +125,9 @@ export function CarDetail({ id: idProp }: { id?: string }) {
       : []),
   ];
 
-  const similar = cars
+  // "Similar cars" needs the whole catalogue, which only exists once the store
+  // has hydrated; it sits below the fold so filling in slightly later is fine.
+  const similar = (hydrated ? storeCars : [])
     .filter(
       (c) =>
         c.id !== car.id &&

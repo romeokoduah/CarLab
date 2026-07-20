@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { getPool } from "@/lib/db/pool";
 import { SEED_CARS, SEED_DISCOUNTS } from "@/lib/data/seed";
 import { SITE_CONFIG } from "@/lib/config";
+import { DEFAULT_DUTY_CONFIG } from "@/lib/duty";
 
 /**
  * Idempotent migration + first-run seed. Safe to run on every deploy:
@@ -76,6 +77,14 @@ export async function migrate(): Promise<void> {
       [SITE_CONFIG.dealerName, SITE_CONFIG.whatsappNumber, SITE_CONFIG.ghsPerUsd],
     );
     console.log("seeded settings");
+  }
+
+  if ((await count("duty_config")) === 0) {
+    await pool.query(
+      `INSERT INTO duty_config (id, config) VALUES (1, $1)`,
+      [JSON.stringify(DEFAULT_DUTY_CONFIG)],
+    );
+    console.log("seeded duty config");
   }
 
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();

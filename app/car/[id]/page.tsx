@@ -25,6 +25,11 @@ export async function generateMetadata({
   };
 }
 
-export default function CarPage({ params }: { params: { id: string } }) {
-  return <CarDetail id={params.id} />;
+export default async function CarPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const car = await getCarById(params.id);
+  return <CarDetail id={params.id} initialCar={car} />;
 }
