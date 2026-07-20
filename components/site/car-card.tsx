@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Gauge, Fuel as FuelIcon, Cog, Images, BadgeCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GlareHover } from "@/components/magicui/glare-hover";
 import { FavouriteButton } from "@/components/site/favourite-button";
 import { WhatsAppButton } from "@/components/site/whatsapp-button";
 import { Price } from "@/components/site/price";
@@ -21,8 +20,7 @@ export function CarCard({ car }: { car: Car }) {
   return (
     <Card className="group overflow-hidden rounded-2xl border-border/70 transition-shadow duration-300 hover:shadow-[0_20px_50px_-24px_rgba(0,0,0,0.6)]">
       <div className="relative aspect-[16/11] overflow-hidden">
-        <Link href={`/car/${car.id}`} aria-label={title}>
-          <GlareHover className="h-full w-full">
+        <Link href={`/car/${car.id}`} aria-label={title} className="block h-full w-full">
             {cover && (
               <Image
                 src={cover}
@@ -33,7 +31,6 @@ export function CarCard({ car }: { car: Car }) {
               />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-          </GlareHover>
         </Link>
 
         {/* top-left badges */}

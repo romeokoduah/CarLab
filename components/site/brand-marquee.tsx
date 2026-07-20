@@ -1,5 +1,3 @@
-import { Marquee } from "@/components/magicui/marquee";
-
 const BRANDS = [
   "Toyota",
   "Mercedes-Benz",
@@ -15,25 +13,27 @@ const BRANDS = [
   "Hyundai",
 ];
 
+/**
+ * Static marque list. This was previously an infinite marquee, which kept the
+ * compositor busy permanently and made scrolling stutter on mobile.
+ */
 export function BrandMarquee() {
   return (
-    <section className="border-y border-border py-10">
-      <p className="container mb-6 text-center text-xs uppercase tracking-[0.2em] text-muted-foreground">
-        Trusted marques, sourced and verified
-      </p>
-      <div className="relative">
-        <Marquee pauseOnHover className="[--duration:38s]">
+    <section className="border-y border-border py-12">
+      <div className="container">
+        <p className="text-center text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          Trusted marques, sourced and verified
+        </p>
+        <ul className="mt-8 grid grid-cols-3 gap-x-6 gap-y-5 sm:grid-cols-4 lg:grid-cols-6">
           {BRANDS.map((b) => (
-            <span
+            <li
               key={b}
-              className="mx-6 select-none whitespace-nowrap text-xl font-semibold tracking-tight text-muted-foreground/60 transition-colors hover:text-foreground"
+              className="text-center text-sm font-medium tracking-tight text-muted-foreground/70 transition-colors hover:text-foreground sm:text-base"
             >
               {b}
-            </span>
+            </li>
           ))}
-        </Marquee>
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-background to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-background to-transparent" />
+        </ul>
       </div>
     </section>
   );

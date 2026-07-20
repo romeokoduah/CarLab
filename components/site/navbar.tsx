@@ -48,9 +48,11 @@ export function SiteNavbar() {
     <header
       className={cn(
         "sticky top-0 z-40 w-full transition-colors duration-300",
+        // Solid, not backdrop-blurred: blurring the whole viewport behind a
+        // sticky header repaints on every scroll frame and stutters on mobile.
         scrolled
-          ? "border-b border-border bg-background/80 backdrop-blur-xl"
-          : "border-b border-transparent",
+          ? "border-b border-border bg-background"
+          : "border-b border-transparent bg-background",
       )}
     >
       <div className="container flex h-16 items-center justify-between gap-4">

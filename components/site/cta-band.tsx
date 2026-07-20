@@ -3,7 +3,6 @@
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { buildGenericWhatsAppLink } from "@/lib/whatsapp";
-import { PulsatingButton } from "@/components/magicui/pulsating-button";
 import { WhatsAppIcon } from "@/components/site/whatsapp-icon";
 
 export function CtaBand() {
@@ -15,7 +14,7 @@ export function CtaBand() {
 
   return (
     <section className="container pb-24">
-      <div className="showroom-vignette relative overflow-hidden rounded-3xl border border-border bg-secondary/30 px-8 py-16 text-center">
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-secondary/30 px-8 py-14 text-center">
         <h2 className="mx-auto max-w-2xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
           Looking for something specific? We&apos;ll source it.
         </h2>
@@ -24,11 +23,15 @@ export function CtaBand() {
           the right car — inspected and delivered to Accra.
         </p>
         <div className="mt-8 flex justify-center">
-          <a href={href} target="_blank" rel="noopener noreferrer">
-            <PulsatingButton>
-              <WhatsAppIcon className="h-5 w-5" />
-              Message us on WhatsApp
-            </PulsatingButton>
+          {/* Solid button; the pulsing animation ran forever and read as noisy. */}
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-12 items-center gap-2.5 rounded-lg bg-gold px-7 text-[15px] font-semibold text-black transition-colors hover:bg-gold/90"
+          >
+            <WhatsAppIcon className="h-5 w-5" />
+            Message us on WhatsApp
           </a>
         </div>
       </div>

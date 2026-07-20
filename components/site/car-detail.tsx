@@ -31,7 +31,6 @@ import { Price } from "@/components/site/price";
 import { CarCard } from "@/components/site/car-card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BlurFade } from "@/components/magicui/blur-fade";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 import { formatMileage } from "@/lib/utils";
@@ -254,10 +253,8 @@ export function CarDetail({
             Similar vehicles
           </h2>
           <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {similar.map((c, i) => (
-              <BlurFade key={c.id} delay={i * 0.06} inView>
-                <CarCard car={c} />
-              </BlurFade>
+            {similar.map((c) => (
+              <CarCard key={c.id} car={c} />
             ))}
           </div>
         </section>

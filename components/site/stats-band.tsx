@@ -1,6 +1,5 @@
 "use client";
 
-import { NumberTicker } from "@/components/magicui/number-ticker";
 import { useStore } from "@/lib/store";
 import type { Car } from "@/lib/types";
 
@@ -27,8 +26,10 @@ export function StatsBand({ initialCars = [] }: { initialCars?: Car[] }) {
       <div className="container grid grid-cols-2 gap-6 py-10 md:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="text-center">
-            <div className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              <NumberTicker value={s.value} className="text-foreground" />
+            {/* Plain numbers — a count-up animation here caused visible
+                churn on load and bought nothing for a corporate look. */}
+            <div className="text-3xl font-semibold tabular-nums tracking-tight sm:text-4xl">
+              {s.value.toLocaleString("en-GH")}
               {s.suffix}
             </div>
             <div className="mt-1 text-xs text-muted-foreground sm:text-sm">

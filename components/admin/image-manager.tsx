@@ -34,6 +34,7 @@ export function ImageManager({ images, onChange }: Props) {
     setUploading(true);
     try {
       const added: CarImage[] = [];
+      let storedBytes = 0;
       for (const file of Array.from(files).filter((f) =>
         f.type.startsWith("image/"),
       )) {
@@ -48,7 +49,8 @@ export function ImageManager({ images, onChange }: Props) {
           toast.error(data.error ?? `Upload failed for ${file.name}`);
           continue;
         }
-        const { url } = await res.json();
+        const { url, bytes } = await res.json();
+        storedBytes += bytes ?? 0;
         added.push({
           id: genId(),
           url,
@@ -56,7 +58,14 @@ export function ImageManager({ images, onChange }: Props) {
           alt: file.name.replace(/\.[^.]+$/, ""),
         });
       }
-      if (added.length) onChange(reindex([...images, ...added]));
+      if (added.length) {
+        onChange(reindex([...images, ...added]));
+        const avgKb = Math.round(storedBytes / added.length / 1024);
+        toast.success(
+          `${added.length} photo${added.length > 1 ? "s" : ""} added`,
+          { description: `Optimised to ~${avgKb} KB each for fast loading` },
+        );
+      }
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -113,7 +122,7 @@ export function ImageManager({ images, onChange }: Props) {
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp"
           multiple
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}

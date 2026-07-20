@@ -1,63 +1,66 @@
-"use client";
-
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
-import { RetroGrid } from "@/components/magicui/retro-grid";
-import { AuroraText } from "@/components/magicui/aurora-text";
-import { TextAnimate } from "@/components/magicui/text-animate";
-import { ShimmerButton } from "@/components/magicui/shimmer-button";
-import { BlurFade } from "@/components/magicui/blur-fade";
-import { Badge } from "@/components/ui/badge";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { SITE_CONFIG } from "@/lib/config";
 
+const TRUST = [
+  "Fully inspected",
+  "Transparent pricing",
+  "Registration handled",
+];
+
+/**
+ * Static by design. Everything here paints once — no looping gradients, grids
+ * or shimmer — so scrolling stays smooth on mobile and nothing flickers in.
+ */
 export function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      <RetroGrid className="opacity-60" />
+    <section className="relative overflow-hidden border-b border-border">
+      {/* Static wash: painted once, never animated. */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-gold/[0.07] via-transparent to-transparent" />
       <div className="showroom-vignette pointer-events-none absolute inset-0" />
 
-      <div className="container relative flex flex-col items-center py-24 text-center md:py-36">
-        <BlurFade delay={0.05}>
-          <Badge
-            variant="gold"
-            className="mb-6 px-3 py-1 text-[11px] uppercase tracking-[0.15em]"
-          >
-            <Sparkles className="h-3 w-3" /> {SITE_CONFIG.location} showroom
-          </Badge>
-        </BlurFade>
+      <div className="container relative py-20 md:py-28">
+        <div className="max-w-3xl">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-gold">
+            {SITE_CONFIG.location} · Premium showroom
+          </p>
 
-        <h1 className="max-w-4xl text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
-          The car you want,{" "}
-          <AuroraText className="font-semibold">without the guesswork</AuroraText>
-        </h1>
+          <h1 className="mt-5 text-balance text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl md:text-6xl">
+            The car you want,{" "}
+            <span className="text-gold">without the guesswork</span>
+          </h1>
 
-        <TextAnimate
-          as="p"
-          by="word"
-          delay={0.2}
-          className="mt-6 max-w-xl text-balance text-base text-muted-foreground sm:text-lg"
-        >
-          Hand-picked, fully inspected vehicles with transparent pricing. Browse
-          the showroom and reach us on WhatsApp for a same-day viewing.
-        </TextAnimate>
+          <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+            Hand-picked, fully inspected vehicles with transparent pricing.
+            Browse the showroom and reach us on WhatsApp for a same-day viewing.
+          </p>
 
-        <BlurFade delay={0.5} className="mt-9">
-          <div className="flex flex-col items-center gap-3 sm:flex-row">
-            <Link href="/inventory">
-              <ShimmerButton className="h-12 px-8 text-[15px]">
-                Explore inventory
-                <ArrowRight className="h-4 w-4" />
-              </ShimmerButton>
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/inventory"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-gold px-7 text-[15px] font-semibold text-black transition-colors hover:bg-gold/90"
+            >
+              Explore inventory
+              <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/inventory?cond=New"
-              className="inline-flex h-12 items-center gap-2 rounded-full border border-border px-7 text-[15px] font-medium transition-colors hover:bg-accent"
+              href="/duty-calculator"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-border px-7 text-[15px] font-medium transition-colors hover:bg-accent"
             >
               <ShieldCheck className="h-4 w-4 text-gold" />
-              New arrivals
+              Estimate import duty
             </Link>
           </div>
-        </BlurFade>
+
+          <ul className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+            {TRUST.map((t) => (
+              <li key={t} className="flex items-center gap-2">
+                <span className="h-1 w-1 rounded-full bg-gold" />
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );

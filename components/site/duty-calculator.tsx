@@ -11,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BlurFade } from "@/components/magicui/blur-fade";
 import { calculateDuty, type DutyConfig, type DutyFuel } from "@/lib/duty";
 
 const ICUMS_URL =
@@ -76,7 +75,7 @@ export function DutyCalculator({ config, defaultRate }: Props) {
   return (
     <div className="grid gap-6 lg:grid-cols-5">
       {/* ── Inputs ── */}
-      <BlurFade className="lg:col-span-2">
+      <div className="lg:col-span-2">
         <div className="rounded-xl border border-border bg-card p-6">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Vehicle details
@@ -179,10 +178,10 @@ export function DutyCalculator({ config, defaultRate }: Props) {
             </div>
           </div>
         </div>
-      </BlurFade>
+      </div>
 
       {/* ── Breakdown ── */}
-      <BlurFade delay={0.08} className="lg:col-span-3">
+      <div className="lg:col-span-3">
         <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -289,7 +288,7 @@ export function DutyCalculator({ config, defaultRate }: Props) {
             </div>
           </div>
         </div>
-      </BlurFade>
+      </div>
     </div>
   );
 }
