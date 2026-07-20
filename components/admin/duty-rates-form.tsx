@@ -22,7 +22,6 @@ const LEVY_LABELS: Record<keyof DutyConfig["levies"], string> = {
   examFee: "Examination Fee",
   nhil: "NHIL",
   getfund: "GETFund Levy",
-  covid: "COVID-19 Levy",
   vat: "VAT",
 };
 

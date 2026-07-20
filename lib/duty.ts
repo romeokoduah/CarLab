@@ -28,14 +28,15 @@ export interface OverageBracket {
 }
 
 export interface DutyLevies {
+  // Charged on CIF (part of the "customs levies").
   ecowas: number;
   au: number;
   specialImport: number;
   processingFee: number;
   examFee: number;
+  // Charged on the taxable base (CIF + duty + customs levies).
   nhil: number;
   getfund: number;
-  covid: number;
   vat: number;
 }
 
@@ -72,10 +73,9 @@ export const DEFAULT_DUTY_CONFIG: DutyConfig = {
     examFee: 1,
     nhil: 2.5,
     getfund: 2.5,
-    covid: 1,
     vat: 15,
   },
-  note: "Rates per GRA and trade.gov, reviewed July 2026.",
+  note: "Rates per GRA and trade.gov, reviewed July 2026 (post 1 Jan 2026 VAT reforms; COVID-19 levy abolished).",
 };
 
 export interface DutyInput {
@@ -138,16 +138,30 @@ export function calculateDuty(
   const overageRate = overageRateFor(config.overage, age);
 
   const L = config.levies;
-  const importDuty = money((cif * dutyRate) / 100);
-  const afterDuty = cif + importDuty;
-
   const onCif = (rate: number) => money((cif * rate) / 100);
-  const onAfterDuty = (rate: number) => money((afterDuty * rate) / 100);
 
-  const nhil = onAfterDuty(L.nhil);
-  const getfund = onAfterDuty(L.getfund);
-  const covid = onAfterDuty(L.covid);
-  const vat = money(((afterDuty + nhil + getfund + covid) * L.vat) / 100);
+  const importDuty = onCif(dutyRate);
+  const overagePenalty = onCif(overageRate);
+
+  // Customs levies are charged on CIF.
+  const ecowas = onCif(L.ecowas);
+  const au = onCif(L.au);
+  const specialImport = onCif(L.specialImport);
+  const processingFee = onCif(L.processingFee);
+  const examFee = onCif(L.examFee);
+
+  // Taxable base = CIF + import duty + the customs levies above. NHIL, GETFund
+  // and VAT (post-2026 reform) are each charged on this base. The overage
+  // penalty is a separate charge and is not folded into the VAT base.
+  const taxableBase = money(
+    cif + importDuty + ecowas + au + specialImport + processingFee + examFee,
+  );
+  const onBase = (rate: number) => money((taxableBase * rate) / 100);
+  const nhil = onBase(L.nhil);
+  const getfund = onBase(L.getfund);
+  const vat = onBase(L.vat);
+
+  const BASE_LABEL = "CIF + Duty + levies";
 
   const lines: DutyLine[] = [
     { label: "Import Duty", basis: "CIF", rate: dutyRate, amount: importDuty },
@@ -158,40 +172,29 @@ export function calculateDuty(
       label: "Overage Penalty",
       basis: "CIF",
       rate: overageRate,
-      amount: onCif(overageRate),
+      amount: overagePenalty,
     });
   }
 
   lines.push(
-    { label: "ECOWAS Levy", basis: "CIF", rate: L.ecowas, amount: onCif(L.ecowas) },
-    { label: "AU Levy", basis: "CIF", rate: L.au, amount: onCif(L.au) },
+    { label: "ECOWAS Levy", basis: "CIF", rate: L.ecowas, amount: ecowas },
+    { label: "AU Levy", basis: "CIF", rate: L.au, amount: au },
     {
       label: "Special Import Levy",
       basis: "CIF",
       rate: L.specialImport,
-      amount: onCif(L.specialImport),
+      amount: specialImport,
     },
     {
       label: "Processing Fee",
       basis: "CIF",
       rate: L.processingFee,
-      amount: onCif(L.processingFee),
+      amount: processingFee,
     },
-    {
-      label: "Examination Fee",
-      basis: "CIF",
-      rate: L.examFee,
-      amount: onCif(L.examFee),
-    },
-    { label: "NHIL", basis: "CIF + Duty", rate: L.nhil, amount: nhil },
-    { label: "GETFund Levy", basis: "CIF + Duty", rate: L.getfund, amount: getfund },
-    { label: "COVID-19 Levy", basis: "CIF + Duty", rate: L.covid, amount: covid },
-    {
-      label: "VAT",
-      basis: "CIF + Duty + NHIL + GETFund + COVID",
-      rate: L.vat,
-      amount: vat,
-    },
+    { label: "Examination Fee", basis: "CIF", rate: L.examFee, amount: examFee },
+    { label: "NHIL", basis: BASE_LABEL, rate: L.nhil, amount: nhil },
+    { label: "GETFund Levy", basis: BASE_LABEL, rate: L.getfund, amount: getfund },
+    { label: "VAT", basis: BASE_LABEL, rate: L.vat, amount: vat },
   );
 
   return {

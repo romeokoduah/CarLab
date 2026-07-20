@@ -41,12 +41,12 @@ test("overage penalty brackets by age", () => {
   assert.equal(yr(2005), 20); // 21 years (capped)
 });
 
-test("full breakdown compounds in the documented order", () => {
-  // CIF 100,000 GHS, petrol 2000cc (10% duty), 2022 car (no overage).
-  //   duty 10,000 | ecowas 500 | au 200 | special 2,000 | processing 1,000
-  //   exam 1,000  | nhil 2,750 | getfund 2,750 | covid 1,100 (on CIF+duty)
-  //   vat 15% of (110,000 + 2,750 + 2,750 + 1,100 = 116,600) = 17,490
-  //   total = 38,790
+test("full breakdown uses the 2026 taxable-base formula (no COVID levy)", () => {
+  // CIF 100,000, petrol 2000cc (10% duty), 2022 car (no overage).
+  //   duty 10,000 | ecowas 500 | au 200 | special 2,000 | processing 1,000 | exam 1,000
+  //   taxable base = 100,000 + 10,000 + 4,700 = 114,700
+  //   nhil 2.5% = 2,867.50 | getfund 2.5% = 2,867.50 | vat 15% = 17,205
+  //   total = 37,640
   const r = calculateDuty(
     { ...base, fuel: "Petrol", engineCc: 2000, yearOfManufacture: 2022 },
     cfg,
@@ -60,21 +60,22 @@ test("full breakdown compounds in the documented order", () => {
   assert.equal(amount("Special Import Levy"), 2_000);
   assert.equal(amount("Processing Fee"), 1_000);
   assert.equal(amount("Examination Fee"), 1_000);
-  assert.equal(amount("NHIL"), 2_750);
-  assert.equal(amount("GETFund Levy"), 2_750);
-  assert.equal(amount("COVID-19 Levy"), 1_100);
-  assert.equal(amount("VAT"), 17_490);
-  assert.equal(r.total, 38_790);
+  assert.equal(amount("NHIL"), 2_867.5);
+  assert.equal(amount("GETFund Levy"), 2_867.5);
+  assert.equal(amount("VAT"), 17_205);
+  // COVID-19 levy was abolished on 1 Jan 2026 — it must not appear.
+  assert.equal(amount("COVID-19 Levy"), undefined);
+  assert.equal(r.total, 37_640);
 });
 
-test("overage penalty is charged on CIF and included in the total", () => {
+test("overage penalty is charged on CIF, on top of the base total", () => {
   const r = calculateDuty(
     { ...base, fuel: "Petrol", engineCc: 2000, yearOfManufacture: 2014 },
     cfg,
   );
   const penalty = r.lines.find((l) => l.label === "Overage Penalty");
   assert.equal(penalty?.amount, 20_000); // 20% of 100,000
-  assert.equal(r.total, 38_790 + 20_000);
+  assert.equal(r.total, 37_640 + 20_000);
 });
 
 test("zero or invalid CIF yields a zero result rather than NaN", () => {
