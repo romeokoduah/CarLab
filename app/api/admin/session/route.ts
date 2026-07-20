@@ -10,5 +10,5 @@ export async function GET() {
   if (!session) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  return NextResponse.json({ email: session.email });
+  return NextResponse.json({ email: session.email, role: session.role });
 }

@@ -91,10 +91,38 @@ export async function migrate(): Promise<void> {
   const password = process.env.ADMIN_PASSWORD;
   if ((await count("admin_users")) === 0 && email && password) {
     await pool.query(
-      `INSERT INTO admin_users (id, email, password_hash) VALUES ($1, $2, $3)`,
+      `INSERT INTO admin_users (id, email, password_hash, role)
+       VALUES ($1, $2, $3, 'super_admin')`,
       [`admin-${randomUUID()}`, email, bcrypt.hashSync(password, 10)],
     );
-    console.log(`created admin ${email}`);
+    console.log(`created super admin ${email}`);
+  }
+
+  // Ensure there is always exactly one owner account: promote the founding
+  // admin (or the oldest) so the site can never be left with nobody able to
+  // manage users.
+  const supers = await pool.query<{ n: string }>(
+    `SELECT COUNT(*)::int AS n FROM admin_users WHERE role = 'super_admin'`,
+  );
+  if (Number(supers.rows[0].n) === 0) {
+    const target = email
+      ? await pool.query(
+          `UPDATE admin_users SET role = 'super_admin' WHERE email = $1 RETURNING email`,
+          [email],
+        )
+      : { rows: [] as { email: string }[] };
+    if (target.rows.length === 0) {
+      const promoted = await pool.query<{ email: string }>(
+        `UPDATE admin_users SET role = 'super_admin'
+          WHERE id = (SELECT id FROM admin_users ORDER BY created_at ASC LIMIT 1)
+          RETURNING email`,
+      );
+      if (promoted.rows.length) {
+        console.log(`promoted ${promoted.rows[0].email} to super admin`);
+      }
+    } else {
+      console.log(`promoted ${target.rows[0].email} to super admin`);
+    }
   }
 }
 

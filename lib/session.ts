@@ -14,8 +14,19 @@ function secretKey(): Uint8Array {
   return new TextEncoder().encode(s);
 }
 
-export async function createSessionToken(email: string): Promise<string> {
-  return new SignJWT({ email })
+/** Kept in sync with lib/db/admins.ts; type-only so no DB code reaches the edge. */
+export type SessionRole = "super_admin" | "admin";
+
+export interface SessionUser {
+  email: string;
+  role: SessionRole;
+}
+
+export async function createSessionToken(
+  email: string,
+  role: SessionRole,
+): Promise<string> {
+  return new SignJWT({ email, role })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${MAX_AGE_SECONDS}s`)
@@ -24,11 +35,14 @@ export async function createSessionToken(email: string): Promise<string> {
 
 export async function verifySession(
   token: string | undefined,
-): Promise<{ email: string } | null> {
+): Promise<SessionUser | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secretKey());
-    return typeof payload.email === "string" ? { email: payload.email } : null;
+    if (typeof payload.email !== "string") return null;
+    const role: SessionRole =
+      payload.role === "super_admin" ? "super_admin" : "admin";
+    return { email: payload.email, role };
   } catch {
     return null;
   }

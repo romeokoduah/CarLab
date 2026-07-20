@@ -26,8 +26,19 @@ export async function POST(req: Request) {
       { status: 401 },
     );
   }
+  if (!admin.active) {
+    return NextResponse.json(
+      { error: "This account has been deactivated." },
+      { status: 403 },
+    );
+  }
 
-  const token = await createSessionToken(admin.email);
+  const token = await createSessionToken(admin.email, admin.role);
   cookies().set(SESSION_COOKIE, token, sessionCookieOptions);
-  return NextResponse.json({ ok: true, email: admin.email });
+  return NextResponse.json({
+    ok: true,
+    email: admin.email,
+    role: admin.role,
+    name: admin.name,
+  });
 }

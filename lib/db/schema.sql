@@ -73,3 +73,54 @@ CREATE TABLE IF NOT EXISTS admin_users (
   password_hash text NOT NULL,
   created_at    timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'admin';
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS active boolean NOT NULL DEFAULT true;
+
+-- ── Customer leads ─────────────────────────────────────────────────────────
+-- Personal data. Only ever exposed through the authenticated admin API; the
+-- public lookup endpoint returns a first name only. No IP addresses are kept.
+CREATE TABLE IF NOT EXISTS leads (
+  id           text PRIMARY KEY,
+  reference    text UNIQUE NOT NULL,
+  full_name    text NOT NULL,
+  phone        text NOT NULL,
+  email        text,
+  consent      boolean NOT NULL DEFAULT false,
+  consent_at   timestamptz,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  last_seen_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS enquiries (
+  id         text PRIMARY KEY,
+  lead_id    text NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  car_id     text REFERENCES cars(id) ON DELETE SET NULL,
+  channel    text NOT NULL DEFAULT 'whatsapp',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_enquiries_lead ON enquiries(lead_id);
+CREATE INDEX IF NOT EXISTS idx_enquiries_car ON enquiries(car_id);
+
+-- Anonymous interest events. `session_key` is a random browser token, NOT an
+-- IP address or fingerprint — enough to de-duplicate, not to identify.
+CREATE TABLE IF NOT EXISTS events (
+  id          text PRIMARY KEY,
+  car_id      text REFERENCES cars(id) ON DELETE CASCADE,
+  type        text NOT NULL,
+  session_key text,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_events_car_type ON events(car_id, type, created_at);
+
+CREATE TABLE IF NOT EXISTS reservations (
+  id          text PRIMARY KEY,
+  car_id      text NOT NULL REFERENCES cars(id) ON DELETE CASCADE,
+  lead_id     text NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  admin_email text,
+  note        text,
+  status      text NOT NULL DEFAULT 'active',
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  expires_at  timestamptz
+);
+CREATE INDEX IF NOT EXISTS idx_reservations_car ON reservations(car_id, status);
