@@ -9,7 +9,7 @@ import { Button, type ButtonProps } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/site/whatsapp-icon";
 import { EnquiryGate } from "@/components/site/enquiry-gate";
 import { getStoredReference, sendBeacon } from "@/lib/customer";
-import type { Car } from "@/lib/types";
+import type { Car, Settings } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface Props extends Omit<ButtonProps, "children"> {
@@ -24,6 +24,12 @@ interface Props extends Omit<ButtonProps, "children"> {
    * there is room to explain it — not in the compact sticky phone bar.
    */
   showAltLine?: boolean;
+  /**
+   * Server-resolved settings, so the numbers are right on first paint. Without
+   * it the store's pre-hydration default (build-time config) is used, which
+   * knows nothing about the dealer's real lines.
+   */
+  initialSettings?: Settings;
 }
 
 export function WhatsAppButton({
@@ -33,11 +39,14 @@ export function WhatsAppButton({
   label = "Enquire on WhatsApp",
   fullWidth,
   showAltLine,
+  initialSettings,
   className,
   ...rest
 }: Props) {
   const mounted = useMounted();
-  const settings = useStore((s) => s.settings);
+  const hydrated = useStore((s) => s.hydrated);
+  const stored = useStore((s) => s.settings);
+  const settings = !hydrated && initialSettings ? initialSettings : stored;
   const currency = useStore((s) => s.currency);
   const [reference, setReference] = useState<string | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
@@ -71,7 +80,9 @@ export function WhatsAppButton({
     });
   };
 
-  const alt = mounted ? settings.whatsappNumberAlt : undefined;
+  // Settings are server-resolved, so this needs no `mounted` guard — only
+  // genuinely client-only state (the stored reference, currency) does.
+  const alt = settings.whatsappNumberAlt;
   const openGateFor = (number: string) => {
     setTarget(number);
     setGateOpen(true);

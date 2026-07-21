@@ -33,14 +33,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useStore } from "@/lib/store";
 import { formatMileage } from "@/lib/utils";
 import { getSessionKey, sendBeacon } from "@/lib/customer";
-import type { Car, DiscountResult } from "@/lib/types";
+import type { Car, DiscountResult, Settings } from "@/lib/types";
 
 export function CarDetail({
   id,
   initialCar,
+  initialSettings,
 }: {
   id: string;
   initialCar?: Car;
+  initialSettings?: Settings;
 }) {
   const storeCars = useStore((s) => s.cars);
   const hydrated = useStore((s) => s.hydrated);
@@ -225,6 +227,7 @@ export function CarDetail({
                   fullWidth
                   label="Enquire on WhatsApp"
                   showAltLine
+                  initialSettings={initialSettings}
                 />
                 <p className="text-center text-xs text-muted-foreground">
                   Opens WhatsApp with this car&apos;s details pre-filled.

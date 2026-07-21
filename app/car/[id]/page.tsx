@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CarDetail } from "@/components/site/car-detail";
 import { getCarById } from "@/lib/api";
+import { dbGetSettings } from "@/lib/db/settings";
 
 // Dynamic: cars live in the database and change at runtime (admin edits), so
 // detail pages render per-request rather than being prebuilt.
@@ -30,6 +31,11 @@ export default async function CarPage({
 }: {
   params: { id: string };
 }) {
-  const car = await getCarById(params.id);
-  return <CarDetail id={params.id} initialCar={car} />;
+  const [car, settings] = await Promise.all([
+    getCarById(params.id),
+    dbGetSettings(),
+  ]);
+  return (
+    <CarDetail id={params.id} initialCar={car} initialSettings={settings} />
+  );
 }
