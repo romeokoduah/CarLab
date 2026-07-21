@@ -147,6 +147,7 @@ export async function POST(req: Request) {
       costShippingUsd: breakdown.shippingUsd,
       rateGhsPerRmb: breakdown.ghsPerRmb,
       rateGhsPerUsd: breakdown.ghsPerUsd,
+      sourceUrl: listing.sourceUrl,
     },
     meta: {
       sourceUrl: listing.sourceUrl,

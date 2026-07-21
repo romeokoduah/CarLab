@@ -28,6 +28,7 @@ export function toPublicCar(car: Car): Car {
     rateGhsPerRmb: _e,
     rateGhsPerUsd: _f,
     ratesPinned: _g,
+    sourceUrl: _h,
     ...publicFields
   } = car;
   return publicFields;

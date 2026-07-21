@@ -38,6 +38,9 @@ ALTER TABLE cars ADD COLUMN IF NOT EXISTS rate_ghs_per_rmb   numeric;
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS rate_ghs_per_usd   numeric;
 -- Rates fixed to this listing: a Settings rate change skips it.
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS cost_rates_pinned boolean NOT NULL DEFAULT false;
+-- Original source listing (e.g. a che168.com link), when imported from one.
+-- Admin-only, like the cost breakdown above — never shown to buyers.
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS source_url text;
 
 CREATE TABLE IF NOT EXISTS car_images (
   id       text PRIMARY KEY,

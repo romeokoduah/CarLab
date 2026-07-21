@@ -12,6 +12,7 @@ import {
   Trash2,
   CheckCircle2,
   ExternalLink,
+  ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -188,6 +189,13 @@ export function InventoryManager() {
                             <ExternalLink className="h-4 w-4" /> View listing
                           </Link>
                         </DropdownMenuItem>
+                        {car.sourceUrl && (
+                          <DropdownMenuItem asChild>
+                            <a href={car.sourceUrl} target="_blank" rel="noopener noreferrer">
+                              <ShoppingCart className="h-4 w-4" /> Buy from source
+                            </a>
+                          </DropdownMenuItem>
+                        )}
                         {car.status !== "Sold" && (
                           <DropdownMenuItem
                             onClick={() => {

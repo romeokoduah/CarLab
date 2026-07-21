@@ -101,6 +101,8 @@ interface FormState {
   ratesPinned: boolean;
   /** Price typed by hand instead of derived from the breakdown. */
   manualPrice: boolean;
+  /** Original source listing link (e.g. che168) — admin-only, never public. */
+  sourceUrl: string;
 }
 
 /** Blank when undefined, so an untouched optional cost reads as empty. */
@@ -144,6 +146,7 @@ function initFrom(car: Car | undefined, rates: Rates): FormState {
     ratesPinned: car?.ratesPinned ?? false,
     // Existing listings without a breakdown keep their hand-typed price.
     manualPrice: car ? !hasBreakdown({ carRmb: car.costCarRmb }) : false,
+    sourceUrl: car?.sourceUrl ?? "",
   };
 }
 
@@ -280,6 +283,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
         rateGhsPerUsd: str(d.rateGhsPerUsd),
         ratesPinned: false,
         manualPrice: false,
+        sourceUrl: d.sourceUrl ?? prev.sourceUrl,
       }));
       const meta = data.meta;
       toast.success(
@@ -378,6 +382,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
       registrationStatus: (f.registrationStatus || undefined) as
         | RegistrationStatus
         | undefined,
+      sourceUrl: f.sourceUrl.trim() || undefined,
     };
     if (car) {
       updateCar(car.id, payload);
@@ -591,6 +596,36 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Source listing */}
+      <section>
+        <SectionTitle>
+          Source listing
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            admin-only — never shown to buyers
+          </span>
+        </SectionTitle>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            value={f.sourceUrl}
+            onChange={(e) => set("sourceUrl", e.target.value)}
+            placeholder="https://www.che168.com/dealer/.../12345678.html"
+            className="flex-1"
+          />
+          {f.sourceUrl.trim() && (
+            <Button type="button" variant="outline" asChild>
+              <a href={f.sourceUrl.trim()} target="_blank" rel="noopener noreferrer">
+                Open listing
+              </a>
+            </Button>
+          )}
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Kept so you can reopen the original listing and buy the car once a customer
+          commits. Filled in automatically by "Import from a listing link" above, or
+          paste one in by hand.
+        </p>
       </section>
 
       {/* Pricing & basics */}

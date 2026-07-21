@@ -74,6 +74,13 @@ export interface Car {
    * automatically when the Settings rates change; pinned ones never do.
    */
   ratesPinned?: boolean;
+  /**
+   * The original source listing (e.g. a che168.com dealer link), when this
+   * car was imported from one. Admin-only, like the cost breakdown — it
+   * reveals where the car was sourced, so buyers must never see it. Lets an
+   * admin reopen the listing to actually buy the car once a customer commits.
+   */
+  sourceUrl?: string;
 }
 
 export type DiscountType = "percent" | "fixed";
