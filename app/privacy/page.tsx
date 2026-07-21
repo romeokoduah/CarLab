@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { dbGetSettings } from "@/lib/db/settings";
+import { formatWhatsAppNumber } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 
@@ -107,7 +108,17 @@ export default async function PrivacyPage() {
           <p className="mt-2">
             You may ask us to show you the information we hold about you,
             correct it, or delete it. Message us on WhatsApp at{" "}
-            <span className="text-foreground">{settings.whatsappNumber}</span>{" "}
+            <span className="text-foreground">
+              {formatWhatsAppNumber(settings.whatsappNumber)}
+            </span>
+            {settings.whatsappNumberAlt && (
+              <>
+                {" or "}
+                <span className="text-foreground">
+                  {formatWhatsAppNumber(settings.whatsappNumberAlt)}
+                </span>
+              </>
+            )}{" "}
             quoting your reference and we will action it. Under Ghana&apos;s Data
             Protection Act, 2012 (Act 843) you may also complain to the Data
             Protection Commission.

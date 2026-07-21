@@ -30,6 +30,9 @@ export function SettingsForm() {
 
   const [dealerName, setDealerName] = useState(settings.dealerName);
   const [whatsappNumber, setWhatsappNumber] = useState(settings.whatsappNumber);
+  const [whatsappNumberAlt, setWhatsappNumberAlt] = useState(
+    settings.whatsappNumberAlt ?? "",
+  );
   const [rate, setRate] = useState(String(settings.ghsPerUsd));
   const [rmbRate, setRmbRate] = useState(String(settings.ghsPerRmb));
   const [resetOpen, setResetOpen] = useState(false);
@@ -70,9 +73,16 @@ export function SettingsForm() {
       toast.error("Enter a valid RMB exchange rate.");
       return;
     }
+    const altDigits = whatsappNumberAlt.replace(/\D/g, "");
+    if (altDigits && altDigits === whatsappNumber.replace(/\D/g, "")) {
+      toast.error("The second line must be a different number.");
+      return;
+    }
     const next: Settings = {
       dealerName: dealerName.trim() || "Eclipse Motors",
       whatsappNumber: whatsappNumber.replace(/\D/g, ""),
+      // Blank clears it — the second line is optional.
+      whatsappNumberAlt: altDigits || undefined,
       ghsPerUsd: numRate,
       ghsPerRmb: numRmbRate,
     };
@@ -108,7 +118,7 @@ export function SettingsForm() {
         </div>
 
         <div className="space-y-1.5">
-          <Label>WhatsApp number</Label>
+          <Label>WhatsApp number — main line</Label>
           <Input
             value={whatsappNumber}
             onChange={(e) => setWhatsappNumber(e.target.value)}
@@ -116,8 +126,22 @@ export function SettingsForm() {
             inputMode="numeric"
           />
           <p className="text-xs text-muted-foreground">
-            International format, digits only (country code + number). Used for
-            every WhatsApp button.
+            International format, digits only (country code + number). Every
+            &ldquo;Enquire&rdquo; button sends here.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>WhatsApp number — second line (optional)</Label>
+          <Input
+            value={whatsappNumberAlt}
+            onChange={(e) => setWhatsappNumberAlt(e.target.value)}
+            placeholder="233554981410"
+            inputMode="numeric"
+          />
+          <p className="text-xs text-muted-foreground">
+            Shown next to the main line so customers can reach whichever is
+            free. Leave empty to show one number only.
           </p>
         </div>
 

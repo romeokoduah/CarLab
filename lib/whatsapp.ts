@@ -49,3 +49,17 @@ export function buildGenericWhatsAppLink(number: string, dealerName = "Eclipse M
   const digits = number.replace(/[^0-9]/g, "");
   return `https://wa.me/${digits}?text=${text}`;
 }
+
+/**
+ * Human-readable form of a stored number, which is digits only.
+ *
+ * Ghanaian mobiles are +233 followed by a 9-digit national number, grouped
+ * 2-3-4 the way people write them locally. Anything else is left as typed
+ * (bar a leading +) rather than forced into the wrong shape.
+ */
+export function formatWhatsAppNumber(number: string): string {
+  const digits = number.replace(/[^0-9]/g, "");
+  if (!digits) return "";
+  const gh = digits.match(/^233(\d{2})(\d{3})(\d{4})$/);
+  return gh ? `+233 ${gh[1]} ${gh[2]} ${gh[3]}` : `+${digits}`;
+}

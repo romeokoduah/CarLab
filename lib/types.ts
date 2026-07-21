@@ -111,7 +111,13 @@ export interface AnalyticsEvent {
 
 export interface Settings {
   dealerName: string;
+  /** Main line. Every one-tap WhatsApp button sends here. */
   whatsappNumber: string;
+  /**
+   * Optional second line, shown alongside the main one so a customer can
+   * reach whichever is free. Empty/undefined simply hides it.
+   */
+  whatsappNumberAlt?: string;
   ghsPerUsd: number;
   /** Cedis per Chinese yuan, used to price imported stock. */
   ghsPerRmb: number;

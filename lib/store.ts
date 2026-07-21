@@ -81,6 +81,7 @@ interface StoreState {
 const defaultSettings: Settings = {
   dealerName: SITE_CONFIG.dealerName,
   whatsappNumber: SITE_CONFIG.whatsappNumber,
+  whatsappNumberAlt: SITE_CONFIG.whatsappNumberAlt || undefined,
   ghsPerUsd: SITE_CONFIG.ghsPerUsd,
   ghsPerRmb: SITE_CONFIG.ghsPerRmb,
 };

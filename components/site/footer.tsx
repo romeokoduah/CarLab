@@ -5,9 +5,17 @@ import { usePathname } from "next/navigation";
 import { MapPin, Phone } from "lucide-react";
 import { Logo } from "@/components/site/logo";
 import { SITE_CONFIG } from "@/lib/config";
+import { useStore } from "@/lib/store";
+import { buildGenericWhatsAppLink, formatWhatsAppNumber } from "@/lib/whatsapp";
 
 export function SiteFooter() {
   const pathname = usePathname();
+  // The dealer's numbers live in the database, not the build-time env — the
+  // footer used to read SITE_CONFIG and so advertised the placeholder number.
+  const settings = useStore((s) => s.settings);
+  const lines = [settings.whatsappNumber, settings.whatsappNumberAlt].filter(
+    (n): n is string => !!n,
+  );
   if (pathname?.startsWith("/admin")) return null;
 
   return (
@@ -23,10 +31,23 @@ export function SiteFooter() {
             <span className="inline-flex items-center gap-2">
               <MapPin className="h-4 w-4 text-gold" /> {SITE_CONFIG.location}
             </span>
-            <span className="inline-flex items-center gap-2">
-              <Phone className="h-4 w-4 text-gold" /> +
-              {SITE_CONFIG.whatsappNumber}
-            </span>
+            {lines.map((number, i) => (
+              <a
+                key={number}
+                href={buildGenericWhatsAppLink(number, settings.dealerName)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 hover:text-foreground"
+              >
+                {/* One icon for the group; the second line indents under it. */}
+                {i === 0 ? (
+                  <Phone className="h-4 w-4 text-gold" />
+                ) : (
+                  <span className="h-4 w-4" aria-hidden />
+                )}
+                {formatWhatsAppNumber(number)}
+              </a>
+            ))}
           </div>
         </div>
 
@@ -72,7 +93,10 @@ export function SiteFooter() {
             </li>
             <li>
               <a
-                href={`https://wa.me/${SITE_CONFIG.whatsappNumber}`}
+                href={buildGenericWhatsAppLink(
+                  settings.whatsappNumber,
+                  settings.dealerName,
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-foreground"

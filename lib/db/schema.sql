@@ -72,6 +72,8 @@ CREATE TABLE IF NOT EXISTS settings (
   CONSTRAINT settings_singleton CHECK (id = 1)
 );
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS ghs_per_rmb numeric NOT NULL DEFAULT 2.1;
+-- Optional second WhatsApp line, shown next to the main one.
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsapp_number_alt text;
 
 -- Import-duty rate table (single row). Editable from the admin so rates can be
 -- updated each national budget without a code change.

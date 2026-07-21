@@ -224,6 +224,7 @@ export function CarDetail({
                   size="lg"
                   fullWidth
                   label="Enquire on WhatsApp"
+                  showAltLine
                 />
                 <p className="text-center text-xs text-muted-foreground">
                   Opens WhatsApp with this car&apos;s details pre-filled.

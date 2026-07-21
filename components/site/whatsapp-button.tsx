@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
-import { buildWhatsAppLink } from "@/lib/whatsapp";
+import { buildWhatsAppLink, formatWhatsAppNumber } from "@/lib/whatsapp";
 import { formatPrice } from "@/lib/currency";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/site/whatsapp-icon";
@@ -19,6 +19,11 @@ interface Props extends Omit<ButtonProps, "children"> {
   discountCode?: string;
   label?: string;
   fullWidth?: boolean;
+  /**
+   * Offer the dealer's second line under the button. Only worth it where
+   * there is room to explain it — not in the compact sticky phone bar.
+   */
+  showAltLine?: boolean;
 }
 
 export function WhatsAppButton({
@@ -27,6 +32,7 @@ export function WhatsAppButton({
   discountCode,
   label = "Enquire on WhatsApp",
   fullWidth,
+  showAltLine,
   className,
   ...rest
 }: Props) {
@@ -35,6 +41,8 @@ export function WhatsAppButton({
   const currency = useStore((s) => s.currency);
   const [reference, setReference] = useState<string | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
+  /** Which line the customer picked, so the gate finishes on that number. */
+  const [target, setTarget] = useState(settings.whatsappNumber);
 
   useEffect(() => {
     setReference(getStoredReference());
@@ -47,13 +55,13 @@ export function WhatsAppButton({
     settings.ghsPerUsd,
   );
 
-  const buildHref = (ref: string) => {
+  const buildHrefFor = (ref: string, number: string) => {
     const listingUrl =
       typeof window !== "undefined"
         ? `${window.location.origin}/car/${car.id}`
         : `/car/${car.id}`;
     return buildWhatsAppLink({
-      number: settings.whatsappNumber,
+      number,
       car,
       listingUrl,
       priceLabel,
@@ -63,28 +71,63 @@ export function WhatsAppButton({
     });
   };
 
+  const alt = mounted ? settings.whatsappNumberAlt : undefined;
+  const openGateFor = (number: string) => {
+    setTarget(number);
+    setGateOpen(true);
+  };
+
+  /** "Or try our other line — +233 …", under the main button. */
+  const altLine = showAltLine && alt && (
+    <p className="text-center text-xs text-muted-foreground">
+      Or reach our other line{" "}
+      {reference ? (
+        <a
+          href={buildHrefFor(reference, alt)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => sendBeacon("/api/leads/lookup", { reference, carId: car.id })}
+          className="font-medium text-foreground underline underline-offset-2"
+        >
+          {formatWhatsAppNumber(alt)}
+        </a>
+      ) : (
+        <button
+          type="button"
+          onClick={() => openGateFor(alt)}
+          className="font-medium text-foreground underline underline-offset-2"
+        >
+          {formatWhatsAppNumber(alt)}
+        </button>
+      )}
+    </p>
+  );
+
   // Known customer: render a real link so the browser opens WhatsApp as a
   // direct user action, and log the enquiry with a non-blocking beacon.
   if (mounted && reference) {
     return (
-      <Button
-        asChild
-        variant="whatsapp"
-        className={cn(fullWidth && "w-full", className)}
-        {...rest}
-      >
-        <a
-          href={buildHref(reference)}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() =>
-            sendBeacon("/api/leads/lookup", { reference, carId: car.id })
-          }
+      <>
+        <Button
+          asChild
+          variant="whatsapp"
+          className={cn(fullWidth && "w-full", className)}
+          {...rest}
         >
-          <WhatsAppIcon className="h-[1.05rem] w-[1.05rem]" />
-          {label}
-        </a>
-      </Button>
+          <a
+            href={buildHrefFor(reference, settings.whatsappNumber)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() =>
+              sendBeacon("/api/leads/lookup", { reference, carId: car.id })
+            }
+          >
+            <WhatsAppIcon className="h-[1.05rem] w-[1.05rem]" />
+            {label}
+          </a>
+        </Button>
+        {altLine}
+      </>
     );
   }
 
@@ -93,17 +136,18 @@ export function WhatsAppButton({
       <Button
         variant="whatsapp"
         className={cn(fullWidth && "w-full", className)}
-        onClick={() => setGateOpen(true)}
+        onClick={() => openGateFor(settings.whatsappNumber)}
         {...rest}
       >
         <WhatsAppIcon className="h-[1.05rem] w-[1.05rem]" />
         {label}
       </Button>
+      {altLine}
       <EnquiryGate
         open={gateOpen}
         onOpenChange={setGateOpen}
         carId={car.id}
-        buildHref={buildHref}
+        buildHref={(ref) => buildHrefFor(ref, target)}
       />
     </>
   );
