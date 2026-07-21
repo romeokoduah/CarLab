@@ -19,6 +19,18 @@
  * couldn't read.
  */
 import { chromium } from "playwright";
+import {
+  Che168ParseError,
+  field,
+  mapBodyType,
+  mapDrivetrain,
+  mapFuel,
+  mapTransmission,
+  parseCnMileage,
+  parseCnPrice,
+  parseCnTransfers,
+  parseMakeModelTrim,
+} from "@/lib/import/che168-parse";
 import type { BodyType, Drivetrain, Fuel, Transmission } from "@/lib/types";
 
 const SPEC_TAB_RE =
@@ -82,27 +94,6 @@ function parseSrcId(url: URL): string {
   return m[1];
 }
 
-function parseCnPrice(text: string): number {
-  const wan = text.match(/¥\s*([\d.]+)\s*万/);
-  if (wan) return Math.round(parseFloat(wan[1]) * 10000);
-  const plain = text.match(/¥\s*([\d,]+)(?!\s*万)/);
-  if (plain) return Math.round(parseFloat(plain[1].replace(/,/g, "")));
-  throw new Che168ImportError("Could not find an asking price (¥) on that listing.");
-}
-
-function parseCnMileage(text: string): number | undefined {
-  const wan = text.match(/表显里程([\d.]+)万公里/);
-  if (wan) return Math.round(parseFloat(wan[1]) * 10000);
-  const plain = text.match(/表显里程([\d.]+)公里/);
-  if (plain) return Math.round(parseFloat(plain[1]));
-  return undefined;
-}
-
-function parseCnTransfers(text: string): number {
-  const m = text.match(/过户次数(\d+)次/);
-  return m ? parseInt(m[1], 10) : 0;
-}
-
 function parseCnHighlights(text: string): { features: string[]; unrecognised: string[] } {
   const start = text.indexOf("配置亮点");
   if (start < 0) return { features: [], unrecognised: [] };
@@ -121,51 +112,6 @@ function parseCnHighlights(text: string): { features: string[]; unrecognised: st
     else unrecognised.push(p);
   }
   return { features, unrecognised };
-}
-
-function mapFuel(s: string): Fuel {
-  const v = s.toLowerCase();
-  if (v.includes("diesel")) return "Diesel";
-  if (v.includes("hybrid")) return "Hybrid";
-  if (v.includes("electric")) return "Electric";
-  return "Petrol";
-}
-
-function mapTransmission(transmissionType: string): Transmission {
-  return /\bmanual transmission\s*\(mt\)/i.test(transmissionType) ? "Manual" : "Automatic";
-}
-
-function mapDrivetrain(s: string): Drivetrain | undefined {
-  if (/front-wheel/i.test(s)) return "FWD";
-  if (/rear-wheel/i.test(s)) return "RWD";
-  if (/all-wheel/i.test(s)) return "AWD";
-  if (/four-wheel|4wd/i.test(s)) return "4WD";
-  return undefined;
-}
-
-function mapBodyType(bodyTypeField: string, classField: string): BodyType {
-  const v = `${bodyTypeField} ${classField}`.toLowerCase();
-  if (v.includes("sedan")) return "Sedan";
-  if (v.includes("hatchback")) return "Hatchback";
-  if (v.includes("pickup")) return "Pickup";
-  if (v.includes("coupe")) return "Coupe";
-  if (v.includes("van") || v.includes("mpv")) return "Van";
-  return "SUV";
-}
-
-/** "Changan Automobile" -> "Changan"; strips the common company-suffix words. */
-function cleanMake(manufacturer: string): string {
-  return manufacturer.replace(/\s*(Automobile|Motor(s)?|Auto)\b.*/i, "").trim();
-}
-
-/** Inserts a space before a trailing "PLUS"/"Plus" glued to digits, e.g. "CS75PLUS" -> "CS75 PLUS". */
-function cleanModel(model: string): string {
-  return model.replace(/(\d)(PLUS|Plus)\b/, "$1 $2").trim();
-}
-
-function field(block: string, label: string): string {
-  const re = new RegExp(`${label}\\n([^\\n]*)`, "i");
-  return block.match(re)?.[1]?.trim() ?? "";
 }
 
 async function extractCn(url: string) {
@@ -293,7 +239,16 @@ export async function scrapeChe168Listing(rawUrl: string): Promise<RawListing> {
 
   const [cn, en] = await Promise.all([extractCn(cnUrl), extractEn(srcId)]);
 
-  const carRmb = parseCnPrice(cn.text);
+  // Parse failures are the admin's problem to read, not a stack trace.
+  const carRmb = (() => {
+    try {
+      return parseCnPrice(cn.text);
+    } catch (e) {
+      throw new Che168ImportError(
+        e instanceof Che168ParseError ? e.message : "Could not read the asking price.",
+      );
+    }
+  })();
   const mileageKm = parseCnMileage(cn.text) ?? (() => {
     const m = en.head.match(/Mileage \(km\)\n(\d+)/);
     if (!m) throw new Che168ImportError("Could not find the mileage on that listing.");
@@ -318,17 +273,7 @@ export async function scrapeChe168Listing(rawUrl: string): Promise<RawListing> {
   const doors = parseInt(field(en.head, "Doors"), 10) || undefined;
   const colour = field(en.head, "Exterior Color") || "Unspecified";
 
-  const modelName = field(en.head, "Model Name");
-  const manufacturer = field(en.head, "Manufacturer");
-  const make = cleanMake(manufacturer) || modelName.split(" ")[0] || "Unknown";
-  const yearMatch = modelName.match(/\b(19|20)\d{2}\b/);
-  const model = cleanModel(
-    yearMatch ? modelName.slice(make.length, yearMatch.index).trim() : modelName,
-  ) || "Unknown";
-  const trim = (yearMatch
-    ? modelName.slice(yearMatch.index! + yearMatch[0].length).trim()
-    : ""
-  ).replace(/\b(Automatic|Manual|Semi-Automatic)\b\s*/gi, "").trim();
+  const { make, model, trim } = parseMakeModelTrim(en.head);
 
   const imageUrls = dedupeImages(en.images, cn.images);
   if (!imageUrls.length) {

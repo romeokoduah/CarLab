@@ -174,6 +174,8 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
   const role = useAuth((s) => s.role);
   const [importUrl, setImportUrl] = useState("");
   const [importing, setImporting] = useState(false);
+  /** Flags the auto-filled fields for review — the scrape can misread a trim. */
+  const [imported, setImported] = useState(false);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setF((prev) => ({ ...prev, [key]: value }));
@@ -285,9 +287,10 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
         manualPrice: false,
         sourceUrl: d.sourceUrl ?? prev.sourceUrl,
       }));
+      setImported(true);
       const meta = data.meta;
       toast.success(
-        `Imported ${d.year} ${d.make} ${d.model} — ${meta.photosDownloaded}/${meta.photosFound} photos. Review every field before saving.`,
+        `Imported ${d.year} ${d.make} ${d.model} — ${meta.photosDownloaded}/${meta.photosFound} photos. Check the make and model, then review the rest before saving.`,
       );
       if (meta.unrecognisedHighlights?.length) {
         toast.message(
@@ -433,15 +436,17 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
         </section>
       )}
 
-      {/* Photos */}
+      {/* Identity — kept above Photos so an imported make/model is the first
+          thing on screen to check, not buried under a wall of thumbnails. */}
       <section>
-        <SectionTitle>Photos</SectionTitle>
-        <ImageManager images={f.images} onChange={(imgs) => set("images", imgs)} />
-      </section>
-
-      {/* Identity */}
-      <section>
-        <SectionTitle>Make &amp; model</SectionTitle>
+        <SectionTitle>
+          Make &amp; model
+          {imported && (
+            <span className="ml-2 text-xs font-normal text-gold">
+              auto-filled — check both before saving
+            </span>
+          )}
+        </SectionTitle>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Make" hint="Select or type to add a new make">
             <Combobox
@@ -462,6 +467,12 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
             />
           </Field>
         </div>
+      </section>
+
+      {/* Photos */}
+      <section>
+        <SectionTitle>Photos</SectionTitle>
+        <ImageManager images={f.images} onChange={(imgs) => set("images", imgs)} />
       </section>
 
       {/* Cost breakdown */}

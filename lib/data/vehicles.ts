@@ -273,6 +273,21 @@ export function modelsForMake(make: string): string[] {
   return key ? VEHICLE_MAKES[key] : [];
 }
 
+/**
+ * The catalog's spelling of a make, when we already know it under a different
+ * casing — so a scraped "JETOUR" or "jetour" files under the same brand as the
+ * "Jetour" cars already in stock instead of splitting the inventory filter.
+ * Unknown makes are passed through untouched (trimmed).
+ */
+export function canonicalMake(make: string): string {
+  const trimmed = make.trim();
+  return (
+    Object.keys(VEHICLE_MAKES).find(
+      (m) => m.toLowerCase() === trimmed.toLowerCase(),
+    ) ?? trimmed
+  );
+}
+
 /** Common engine capacities offered in the picker (free-typeable). */
 export const ENGINE_CAPACITIES = [
   "1.0L",
