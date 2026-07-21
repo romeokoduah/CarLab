@@ -36,6 +36,8 @@ ALTER TABLE cars ADD COLUMN IF NOT EXISTS cost_profit_rmb    numeric;
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS cost_shipping_usd  numeric;
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS rate_ghs_per_rmb   numeric;
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS rate_ghs_per_usd   numeric;
+-- Rates fixed to this listing: a Settings rate change skips it.
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS cost_rates_pinned boolean NOT NULL DEFAULT false;
 
 CREATE TABLE IF NOT EXISTS car_images (
   id       text PRIMARY KEY,

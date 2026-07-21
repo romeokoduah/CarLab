@@ -69,6 +69,11 @@ export interface Car {
   costShippingUsd?: number;
   rateGhsPerRmb?: number;
   rateGhsPerUsd?: number;
+  /**
+   * Rates fixed to this listing. Cars left on the standard rates reprice
+   * automatically when the Settings rates change; pinned ones never do.
+   */
+  ratesPinned?: boolean;
 }
 
 export type DiscountType = "percent" | "fixed";

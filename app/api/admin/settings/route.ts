@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { dbUpdateSettings } from "@/lib/db/settings";
+import { dbGetSettings, dbUpdateSettings } from "@/lib/db/settings";
+import { dbRepriceCarsForRates } from "@/lib/db/cars";
 import type { Settings } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -10,6 +11,21 @@ export async function PATCH(req: Request) {
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
+  const before = await dbGetSettings();
   const settings = await dbUpdateSettings(body as Partial<Settings>);
-  return NextResponse.json({ settings });
+
+  // An exchange-rate change moves the cedi price of every listing priced from
+  // its RMB/USD cost breakdown, so re-price them here rather than leave the
+  // public site quoting yesterday's rate.
+  const ratesChanged =
+    settings.ghsPerRmb !== before.ghsPerRmb ||
+    settings.ghsPerUsd !== before.ghsPerUsd;
+  const repriced = ratesChanged
+    ? await dbRepriceCarsForRates({
+        ghsPerRmb: settings.ghsPerRmb,
+        ghsPerUsd: settings.ghsPerUsd,
+      })
+    : 0;
+
+  return NextResponse.json({ settings, repriced });
 }

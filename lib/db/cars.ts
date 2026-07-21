@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getPool } from "@/lib/db/pool";
+import { previewReprice, type Rates } from "@/lib/pricing";
 import type { Car, CarImage } from "@/lib/types";
 
 /** A `cars` row, with columns typed as the domain unions we always write. */
@@ -36,6 +37,7 @@ interface CarRow {
   cost_shipping_usd: string | null;
   rate_ghs_per_rmb: string | null;
   rate_ghs_per_usd: string | null;
+  cost_rates_pinned: boolean;
 }
 
 /** pg returns `numeric` as a string; keep NULL distinct from 0. */
@@ -89,6 +91,7 @@ function mapCar(r: CarRow, images: CarImage[]): Car {
     costShippingUsd: numOrUndef(r.cost_shipping_usd),
     rateGhsPerRmb: numOrUndef(r.rate_ghs_per_rmb),
     rateGhsPerUsd: numOrUndef(r.rate_ghs_per_usd),
+    ratesPinned: r.cost_rates_pinned,
   };
 }
 
@@ -113,7 +116,8 @@ const CAR_COLUMNS = `make=$2, model=$3, year=$4, price_ghs=$5, mileage_km=$6,
   engine_capacity=$17, drivetrain=$18, seats=$19, doors=$20, cylinders=$21,
   horsepower=$22, previous_owners=$23, registration_status=$24,
   cost_car_rmb=$25, cost_logistics_rmb=$26, cost_profit_rmb=$27,
-  cost_shipping_usd=$28, rate_ghs_per_rmb=$29, rate_ghs_per_usd=$30`;
+  cost_shipping_usd=$28, rate_ghs_per_rmb=$29, rate_ghs_per_usd=$30,
+  cost_rates_pinned=$31`;
 
 function carValues(id: string, c: Omit<Car, "id" | "createdAt" | "images">) {
   return [
@@ -124,6 +128,7 @@ function carValues(id: string, c: Omit<Car, "id" | "createdAt" | "images">) {
     c.horsepower ?? null, c.previousOwners ?? null, c.registrationStatus ?? null,
     c.costCarRmb ?? null, c.costLogisticsRmb ?? null, c.costProfitRmb ?? null,
     c.costShippingUsd ?? null, c.rateGhsPerRmb ?? null, c.rateGhsPerUsd ?? null,
+    c.ratesPinned ?? false,
   ];
 }
 
@@ -162,9 +167,9 @@ export async function dbCreateCar(
        video_url, status, verified, engine_capacity, drivetrain, seats, doors,
        cylinders, horsepower, previous_owners, registration_status,
        cost_car_rmb, cost_logistics_rmb, cost_profit_rmb, cost_shipping_usd,
-       rate_ghs_per_rmb, rate_ghs_per_usd)
+       rate_ghs_per_rmb, rate_ghs_per_usd, cost_rates_pinned)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
-       $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30)`,
+       $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31)`,
     carValues(id, input),
   );
   await replaceImages(id, input.images ?? []);
@@ -188,4 +193,35 @@ export async function dbUpdateCar(
 
 export async function dbDeleteCar(id: string): Promise<void> {
   await getPool().query(`DELETE FROM cars WHERE id = $1`, [id]);
+}
+
+/**
+ * Re-price every listing that follows the global exchange rates, and record
+ * the rates it was priced at. Hand-priced and rate-pinned listings are
+ * untouched. Returns the number of cars whose price actually moved.
+ *
+ * Called whenever the Settings rates change, so the cedi price buyers see is
+ * always the current cost of the car. See lib/pricing.ts for the rules.
+ */
+export async function dbRepriceCarsForRates(rates: Rates): Promise<number> {
+  const cars = await dbGetCars();
+  const rows = previewReprice(cars, rates);
+  const pool = getPool();
+  for (const row of rows) {
+    await pool.query(
+      `UPDATE cars
+          SET price_ghs = $2, rate_ghs_per_rmb = $3, rate_ghs_per_usd = $4
+        WHERE id = $1`,
+      [row.id, row.newPriceGhs, rates.ghsPerRmb, rates.ghsPerUsd],
+    );
+  }
+  // Cars that follow the rates but whose rounded price did not move still need
+  // their stored rates refreshed, so the breakdown reopens with today's rates.
+  await pool.query(
+    `UPDATE cars
+        SET rate_ghs_per_rmb = $1, rate_ghs_per_usd = $2
+      WHERE cost_rates_pinned = false AND cost_car_rmb IS NOT NULL`,
+    [rates.ghsPerRmb, rates.ghsPerUsd],
+  );
+  return rows.length;
 }

@@ -69,7 +69,8 @@ interface StoreState {
   toggleDiscount: (id: string) => Promise<void>;
 
   // settings + analytics
-  updateSettings: (patch: Partial<Settings>) => Promise<void>;
+  /** Resolves with the number of cars re-priced by a rate change. */
+  updateSettings: (patch: Partial<Settings>) => Promise<number>;
   recordEvent: (carId: string, type: AnalyticsEventType) => void;
 
   resetData: () => Promise<void>;
@@ -201,11 +202,21 @@ export const useStore = create<StoreState>()(
       },
 
       updateSettings: async (patch) => {
-        const { settings } = await jsonFetch<{ settings: Settings }>(
-          "/api/admin/settings",
-          { method: "PATCH", body: JSON.stringify(patch) },
-        );
+        const { settings, repriced } = await jsonFetch<{
+          settings: Settings;
+          repriced: number;
+        }>("/api/admin/settings", {
+          method: "PATCH",
+          body: JSON.stringify(patch),
+        });
         set({ settings });
+        // A rate change re-prices cars server-side; pull the new figures in so
+        // the admin tables and the public store agree with the database.
+        if (repriced > 0) {
+          const { cars } = await jsonFetch<{ cars: Car[] }>("/api/cars");
+          set({ cars });
+        }
+        return repriced;
       },
 
       recordEvent: (carId, type) =>

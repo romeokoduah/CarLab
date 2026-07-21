@@ -55,6 +55,29 @@ deals). Cars saved before this change have no breakdown and stay manual.
 Admin-only. The public site is unchanged: it shows the final cedi price exactly
 as it does today. No breakdown field is rendered on any public page.
 
+## Re-pricing on a rate change
+
+Exchange rates move, and a listing priced at last month's rate is quoting the
+wrong cost. Saving a new rate in Settings therefore re-prices the inventory.
+
+A listing follows the Settings rates unless one of two things is true:
+
+- **It has no breakdown** — priced by hand, including every listing created
+  before this feature. Left untouched.
+- **Its rates are pinned** — the admin typed a rate on that specific listing.
+  Typing in either rate box pins it automatically; the pin is a visible switch,
+  and turning it off restores the Settings rates.
+
+Everything else is recomputed from its stored RMB and USD costs at the new
+rates, and its stored rates are refreshed so the breakdown always reopens
+showing what produced the price.
+
+Because this rewrites public prices in bulk, saving a changed rate first shows
+a confirmation listing each affected car with its old and new price. Nothing is
+written until it is confirmed. The re-price runs server-side in the settings
+`PATCH` (the database is the source of truth); the client then re-reads the
+catalogue so the admin tables match.
+
 ## Data model
 
 Six nullable columns on `cars`, added through `ALTER TABLE ... ADD COLUMN IF NOT
@@ -63,6 +86,7 @@ EXISTS` in `schema.sql` (already applied on every deploy by `lib/db/migrate.ts`)
 - `cost_car_rmb`, `cost_logistics_rmb`, `cost_profit_rmb` — numeric
 - `cost_shipping_usd` — numeric
 - `rate_ghs_per_rmb`, `rate_ghs_per_usd` — numeric
+- `cost_rates_pinned boolean NOT NULL DEFAULT false`
 
 `settings` gains `ghs_per_rmb numeric NOT NULL DEFAULT 2.1`.
 
@@ -83,3 +107,11 @@ The API routes are pass-through and need no change.
 `lib/pricing.test.ts` covers the worked sedan and SUV examples, the body-type
 default lookup, rounding, and the missing-input case (no car price entered →
 no computed price, form stays manual).
+
+Rounding is done to the pesewa before rounding up to the nearest GHS 100:
+rate arithmetic produces float noise (95,500 × 2.2 = 210100.00000000003) and
+rounding that up would add a spurious GHS 100. Covered by a regression test.
+
+Re-pricing is tested through `previewReprice`: cars that follow the rates move,
+pinned cars and hand-priced cars do not, and cars whose rounded price is
+unchanged are not reported as changes.

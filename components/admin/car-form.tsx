@@ -96,6 +96,8 @@ interface FormState {
   costShippingUsd: string;
   rateGhsPerRmb: string;
   rateGhsPerUsd: string;
+  /** Hold these rates against future Settings changes. */
+  ratesPinned: boolean;
   /** Price typed by hand instead of derived from the breakdown. */
   manualPrice: boolean;
 }
@@ -138,6 +140,7 @@ function initFrom(car: Car | undefined, rates: Rates): FormState {
     costShippingUsd: str(car?.costShippingUsd ?? byBody.shippingUsd),
     rateGhsPerRmb: str(car?.rateGhsPerRmb ?? rates.ghsPerRmb),
     rateGhsPerUsd: str(car?.rateGhsPerUsd ?? rates.ghsPerUsd),
+    ratesPinned: car?.ratesPinned ?? false,
     // Existing listings without a breakdown keep their hand-typed price.
     manualPrice: car ? !hasBreakdown({ carRmb: car.costCarRmb }) : false,
   };
@@ -192,6 +195,26 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
     }));
   };
 
+  /**
+   * Typing a rate here means this listing should keep it, so pin it — otherwise
+   * the next Settings change would silently overwrite what was just entered.
+   */
+  const setRate = (key: "rateGhsPerRmb" | "rateGhsPerUsd", value: string) =>
+    setF((prev) => ({ ...prev, [key]: value, ratesPinned: true }));
+
+  /** Unpinning hands the listing back to the Settings rates, starting now. */
+  const setRatesPinned = (pinned: boolean) =>
+    setF((prev) =>
+      pinned
+        ? { ...prev, ratesPinned: true }
+        : {
+            ...prev,
+            ratesPinned: false,
+            rateGhsPerRmb: String(settings.ghsPerRmb),
+            rateGhsPerUsd: String(settings.ghsPerUsd),
+          },
+    );
+
   const resetCostDefaults = () => {
     const d = defaultsForBody(f.bodyType);
     setF((prev) => ({
@@ -201,6 +224,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
       costShippingUsd: String(d.shippingUsd),
       rateGhsPerRmb: String(settings.ghsPerRmb),
       rateGhsPerUsd: String(settings.ghsPerUsd),
+      ratesPinned: false,
     }));
   };
 
@@ -246,6 +270,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
           costShippingUsd: undefined,
           rateGhsPerRmb: undefined,
           rateGhsPerUsd: undefined,
+          ratesPinned: false,
         }
       : {
           costCarRmb: breakdown.carRmb,
@@ -254,6 +279,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
           costShippingUsd: breakdown.shippingUsd,
           rateGhsPerRmb: breakdown.ghsPerRmb,
           rateGhsPerUsd: breakdown.ghsPerUsd,
+          ratesPinned: f.ratesPinned,
         };
     const payload = {
       ...costs,
@@ -383,21 +409,21 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
                 disabled={f.manualPrice}
               />
             </Field>
-            <Field label="GHS per ¥1 RMB" hint="Today's rate">
+            <Field label="GHS per ¥1 RMB" hint="From Settings">
               <Input
                 type="number"
                 step="0.01"
                 value={f.rateGhsPerRmb}
-                onChange={(e) => set("rateGhsPerRmb", e.target.value)}
+                onChange={(e) => setRate("rateGhsPerRmb", e.target.value)}
                 disabled={f.manualPrice}
               />
             </Field>
-            <Field label="GHS per $1 USD" hint="Today's rate">
+            <Field label="GHS per $1 USD" hint="From Settings">
               <Input
                 type="number"
                 step="0.01"
                 value={f.rateGhsPerUsd}
-                onChange={(e) => set("rateGhsPerUsd", e.target.value)}
+                onChange={(e) => setRate("rateGhsPerUsd", e.target.value)}
                 disabled={f.manualPrice}
               />
             </Field>
@@ -432,14 +458,31 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
             </Button>
           </div>
 
-          <div className="mt-4 flex items-center gap-2.5 border-t border-border pt-4">
-            <Switch
-              checked={f.manualPrice}
-              onCheckedChange={(v) => set("manualPrice", v)}
-            />
-            <span className="text-sm text-muted-foreground">
-              Set price manually (ignore this breakdown)
-            </span>
+          <div className="mt-4 space-y-3 border-t border-border pt-4">
+            <div className="flex items-start gap-2.5">
+              <Switch
+                checked={f.ratesPinned}
+                onCheckedChange={setRatesPinned}
+                disabled={f.manualPrice}
+              />
+              <span className="text-sm text-muted-foreground">
+                Pin these rates to this car
+                <span className="block text-[11px]">
+                  {f.ratesPinned
+                    ? "Price stays put when you change the rates in Settings."
+                    : "Price updates automatically when you change the rates in Settings."}
+                </span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <Switch
+                checked={f.manualPrice}
+                onCheckedChange={(v) => set("manualPrice", v)}
+              />
+              <span className="text-sm text-muted-foreground">
+                Set price manually (ignore this breakdown)
+              </span>
+            </div>
           </div>
         </div>
       </section>
