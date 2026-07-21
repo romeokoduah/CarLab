@@ -10,12 +10,36 @@ import { dbGetDiscounts } from "@/lib/db/discounts";
  * IMPORTANT: server-only (imports `pg`). Never import from a client component.
  */
 
+/**
+ * Strip the landed-cost breakdown before a car leaves the server for a public
+ * page or the public API.
+ *
+ * The breakdown holds what the dealer paid in China and the margin taken on the
+ * car. It is admin-only commercial data: it must never appear in /api/cars, in
+ * a server-rendered page's payload, or anywhere else a buyer or competitor can
+ * read it. The admin UI gets the full record from /api/admin/cars instead.
+ */
+export function toPublicCar(car: Car): Car {
+  const {
+    costCarRmb: _a,
+    costLogisticsRmb: _b,
+    costProfitRmb: _c,
+    costShippingUsd: _d,
+    rateGhsPerRmb: _e,
+    rateGhsPerUsd: _f,
+    ratesPinned: _g,
+    ...publicFields
+  } = car;
+  return publicFields;
+}
+
 export async function getCars(): Promise<Car[]> {
-  return dbGetCars();
+  return (await dbGetCars()).map(toPublicCar);
 }
 
 export async function getCarById(id: string): Promise<Car | undefined> {
-  return dbGetCarById(id);
+  const car = await dbGetCarById(id);
+  return car && toPublicCar(car);
 }
 
 export async function getDiscountCodes(): Promise<DiscountCode[]> {

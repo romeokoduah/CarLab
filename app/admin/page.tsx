@@ -30,6 +30,7 @@ import { PasswordForm } from "@/components/admin/password-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { useStore } from "@/lib/store";
 import { useMounted } from "@/lib/hooks";
 
 export default function AdminPage() {
@@ -38,6 +39,7 @@ export default function AdminPage() {
   const role = useAuth((s) => s.role);
   const signOut = useAuth((s) => s.signOut);
   const checkSession = useAuth((s) => s.checkSession);
+  const hydrateAdminCars = useStore((s) => s.hydrateAdminCars);
   const [checking, setChecking] = useState(true);
 
   // Restore the session from the httpOnly cookie so a returning admin stays
@@ -45,6 +47,12 @@ export default function AdminPage() {
   useEffect(() => {
     checkSession().finally(() => setChecking(false));
   }, [checkSession]);
+
+  // Public /api/cars omits the cost breakdown; once signed in, re-read the
+  // full records so the car form can show and save a listing's pricing.
+  useEffect(() => {
+    if (email) void hydrateAdminCars();
+  }, [email, hydrateAdminCars]);
 
   if (!mounted || checking) {
     return (

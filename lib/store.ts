@@ -50,6 +50,8 @@ interface StoreState {
 
   // data loading
   hydrate: () => Promise<void>;
+  /** Re-load cars with their cost breakdown. Admin only; needs a session. */
+  hydrateAdminCars: () => Promise<void>;
 
   // preferences (client-only)
   setCurrency: (c: Currency) => void;
@@ -110,6 +112,20 @@ export const useStore = create<StoreState>()(
         } catch (err) {
           console.error("hydrate failed", err);
           set({ hydrated: true });
+        }
+      },
+
+      /**
+       * The public /api/cars omits each car's cost breakdown, so the admin
+       * re-reads the full records once signed in. Without this the car form
+       * would open with an empty breakdown and saving would erase it.
+       */
+      hydrateAdminCars: async () => {
+        try {
+          const { cars } = await jsonFetch<{ cars: Car[] }>("/api/admin/cars");
+          set({ cars });
+        } catch (err) {
+          console.error("admin car hydrate failed", err);
         }
       },
 
