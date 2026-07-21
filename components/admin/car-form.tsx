@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { X, Plus, RotateCcw } from "lucide-react";
+import { X, Plus, RotateCcw, Wand2, Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -167,6 +168,9 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
     }),
   );
   const [featureDraft, setFeatureDraft] = useState("");
+  const role = useAuth((s) => s.role);
+  const [importUrl, setImportUrl] = useState("");
+  const [importing, setImporting] = useState(false);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setF((prev) => ({ ...prev, [key]: value }));
@@ -226,6 +230,71 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
       rateGhsPerUsd: String(settings.ghsPerUsd),
       ratesPinned: false,
     }));
+  };
+
+  const runImport = async () => {
+    const url = importUrl.trim();
+    if (!url) {
+      toast.error("Paste a che168 listing link first.");
+      return;
+    }
+    setImporting(true);
+    try {
+      const res = await fetch("/api/admin/import-listing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? "Import failed.");
+        return;
+      }
+      const d = data.draft;
+      setF((prev) => ({
+        ...prev,
+        make: d.make ?? prev.make,
+        model: d.model ?? prev.model,
+        year: d.year ?? prev.year,
+        mileageKm: d.mileageKm ?? prev.mileageKm,
+        colour: d.colour ?? prev.colour,
+        bodyType: d.bodyType ?? prev.bodyType,
+        transmission: d.transmission ?? prev.transmission,
+        fuel: d.fuel ?? prev.fuel,
+        drivetrain: d.drivetrain ?? prev.drivetrain,
+        seats: d.seats != null ? String(d.seats) : prev.seats,
+        doors: d.doors != null ? String(d.doors) : prev.doors,
+        cylinders: d.cylinders != null ? String(d.cylinders) : prev.cylinders,
+        horsepower: d.horsepower != null ? String(d.horsepower) : prev.horsepower,
+        engineCapacity: d.engineCapacity ?? prev.engineCapacity,
+        previousOwners: d.previousOwners != null ? String(d.previousOwners) : prev.previousOwners,
+        description: d.description ?? prev.description,
+        features: d.features ?? prev.features,
+        images: d.images ?? prev.images,
+        priceGhs: d.priceGhs ?? prev.priceGhs,
+        costCarRmb: str(d.costCarRmb),
+        costLogisticsRmb: str(d.costLogisticsRmb),
+        costProfitRmb: str(d.costProfitRmb),
+        costShippingUsd: str(d.costShippingUsd),
+        rateGhsPerRmb: str(d.rateGhsPerRmb),
+        rateGhsPerUsd: str(d.rateGhsPerUsd),
+        ratesPinned: false,
+        manualPrice: false,
+      }));
+      const meta = data.meta;
+      toast.success(
+        `Imported ${d.year} ${d.make} ${d.model} — ${meta.photosDownloaded}/${meta.photosFound} photos. Review every field before saving.`,
+      );
+      if (meta.unrecognisedHighlights?.length) {
+        toast.message(
+          `Untranslated dealer tags found (check the listing yourself): ${meta.unrecognisedHighlights.join(", ")}`,
+        );
+      }
+    } catch {
+      toast.error("Import failed — check the connection and try again.");
+    } finally {
+      setImporting(false);
+    }
   };
 
   const toggleFeature = (name: string) =>
@@ -322,6 +391,43 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
 
   return (
     <form onSubmit={submit} className="space-y-7">
+      {/* Import from a che168 listing link (super admin, new cars only) */}
+      {!car && role === "super_admin" && (
+        <section>
+          <SectionTitle>
+            Import from a listing link
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              che168.com — fills the form below for you to review
+            </span>
+          </SectionTitle>
+          <div className="flex flex-col gap-2 rounded-2xl border border-border bg-muted/30 p-4 sm:flex-row">
+            <Input
+              value={importUrl}
+              onChange={(e) => setImportUrl(e.target.value)}
+              placeholder="https://www.che168.com/dealer/.../12345678.html"
+              disabled={importing}
+              className="flex-1"
+            />
+            <Button type="button" onClick={runImport} disabled={importing}>
+              {importing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Importing…
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4" /> Import
+                </>
+              )}
+            </Button>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Reads the listing, writes a description and feature list from only what it
+            confirms, and pulls photos. Nothing saves until you review the fields below
+            and click Save.
+          </p>
+        </section>
+      )}
+
       {/* Photos */}
       <section>
         <SectionTitle>Photos</SectionTitle>
