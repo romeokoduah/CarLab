@@ -7,12 +7,17 @@ import { Logo } from "@/components/site/logo";
 import { SITE_CONFIG } from "@/lib/config";
 import { useStore } from "@/lib/store";
 import { buildGenericWhatsAppLink, formatWhatsAppNumber } from "@/lib/whatsapp";
+import type { Settings } from "@/lib/types";
 
-export function SiteFooter() {
+export function SiteFooter({ initialSettings }: { initialSettings: Settings }) {
   const pathname = usePathname();
   // The dealer's numbers live in the database, not the build-time env — the
   // footer used to read SITE_CONFIG and so advertised the placeholder number.
-  const settings = useStore((s) => s.settings);
+  // Server-rendered from `initialSettings` so the real numbers are in the
+  // HTML; the store takes over once it has hydrated.
+  const hydrated = useStore((s) => s.hydrated);
+  const stored = useStore((s) => s.settings);
+  const settings = hydrated ? stored : initialSettings;
   const lines = [settings.whatsappNumber, settings.whatsappNumberAlt].filter(
     (n): n is string => !!n,
   );

@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/site/footer";
 import { FloatingWhatsApp } from "@/components/site/floating-whatsapp";
 import { StoreHydrator } from "@/components/providers/store-hydrator";
 import { SITE_CONFIG } from "@/lib/config";
+import { dbGetSettings } from "@/lib/db/settings";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -36,6 +37,13 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * The layout reads the dealer's live contact details from the database, so no
+ * page can be prerendered at build time — the footer would bake in whatever
+ * the defaults were rather than the real numbers.
+ */
+export const dynamic = "force-dynamic";
+
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: dark)", color: "#0B0B0C" },
@@ -45,9 +53,14 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Read the dealer's contact details here so the footer and floating button
+  // are correct in the server-rendered HTML — for search engines, and for the
+  // moment before the client store hydrates.
+  const settings = await dbGetSettings();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${sora.variable} font-sans`}>
@@ -61,9 +74,9 @@ export default function RootLayout({
           <div className="relative flex min-h-screen flex-col">
             <SiteNavbar />
             <main className="flex-1">{children}</main>
-            <SiteFooter />
+            <SiteFooter initialSettings={settings} />
           </div>
-          <FloatingWhatsApp />
+          <FloatingWhatsApp initialSettings={settings} />
           <Toaster position="top-center" />
         </ThemeProvider>
       </body>

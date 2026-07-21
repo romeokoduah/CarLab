@@ -2,14 +2,21 @@
 
 import { usePathname } from "next/navigation";
 import { useStore } from "@/lib/store";
-import { useMounted } from "@/lib/hooks";
 import { buildGenericWhatsAppLink } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/site/whatsapp-icon";
+import type { Settings } from "@/lib/types";
 
-export function FloatingWhatsApp() {
+export function FloatingWhatsApp({
+  initialSettings,
+}: {
+  initialSettings: Settings;
+}) {
   const pathname = usePathname();
-  const mounted = useMounted();
-  const settings = useStore((s) => s.settings);
+  // Server-rendered with the real number, so the button is a working link
+  // before hydration rather than an inert "#".
+  const hydrated = useStore((s) => s.hydrated);
+  const stored = useStore((s) => s.settings);
+  const settings = hydrated ? stored : initialSettings;
 
   if (pathname?.startsWith("/admin")) return null;
   // Car pages carry their own car-specific enquiry buttons — a sticky bar on
@@ -17,10 +24,10 @@ export function FloatingWhatsApp() {
   // overlap them and send a message with no car attached.
   if (pathname?.startsWith("/car/")) return null;
 
-  const number = mounted ? settings.whatsappNumber : undefined;
-  const href = number
-    ? buildGenericWhatsAppLink(number, settings.dealerName)
-    : "#";
+  const href = buildGenericWhatsAppLink(
+    settings.whatsappNumber,
+    settings.dealerName,
+  );
 
   return (
     <a
