@@ -12,6 +12,10 @@ export function FloatingWhatsApp() {
   const settings = useStore((s) => s.settings);
 
   if (pathname?.startsWith("/admin")) return null;
+  // Car pages carry their own car-specific enquiry buttons — a sticky bar on
+  // phones, a sticky panel on desktop — so a second floating button would only
+  // overlap them and send a message with no car attached.
+  if (pathname?.startsWith("/car/")) return null;
 
   const number = mounted ? settings.whatsappNumber : undefined;
   const href = number

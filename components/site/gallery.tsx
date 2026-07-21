@@ -58,7 +58,8 @@ export function Gallery({ images, title, videoUrl }: GalleryProps) {
     <div>
       {/* Main image */}
       <div
-        className="group relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-border bg-secondary"
+        // max-h keeps the photo from eating a whole tall desktop screen.
+        className="group relative aspect-[4/3] max-h-[70vh] w-full overflow-hidden rounded-2xl border border-border bg-secondary sm:aspect-[16/10]"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
@@ -107,7 +108,7 @@ export function Gallery({ images, title, videoUrl }: GalleryProps) {
           <button
             onClick={() => setShowVideo(true)}
             className={cn(
-              "relative grid aspect-[4/3] h-16 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border-2 bg-black/60 text-white transition",
+              "relative grid aspect-[4/3] h-14 w-20 shrink-0 place-items-center overflow-hidden rounded-xl border-2 bg-black/60 text-white transition sm:h-16 sm:w-24",
               showVideo ? "border-gold" : "border-transparent",
             )}
             aria-label="Play video walkaround"
@@ -125,7 +126,7 @@ export function Gallery({ images, title, videoUrl }: GalleryProps) {
             }}
             aria-label={`View photo ${i + 1}`}
             className={cn(
-              "relative aspect-[4/3] h-16 w-24 shrink-0 overflow-hidden rounded-xl border-2 transition",
+              "relative aspect-[4/3] h-14 w-20 shrink-0 overflow-hidden rounded-xl border-2 transition sm:h-16 sm:w-24",
               i === active && !showVideo
                 ? "border-gold"
                 : "border-transparent opacity-70 hover:opacity-100",
@@ -181,19 +182,27 @@ export function Gallery({ images, title, videoUrl }: GalleryProps) {
               </>
             )}
           </div>
-          <div className="flex justify-center gap-2 overflow-x-auto p-4 no-scrollbar">
-            {images.map((img, i) => (
-              <button
-                key={img.id}
-                onClick={() => setActive(i)}
-                className={cn(
-                  "relative aspect-[4/3] h-14 w-20 shrink-0 overflow-hidden rounded-lg border-2 transition",
-                  i === active ? "border-gold" : "border-transparent opacity-60",
-                )}
-              >
-                <Image src={img.url} alt="" fill sizes="80px" className="object-cover" />
-              </button>
-            ))}
+          {/*
+            The inner `w-max mx-auto` centres a short strip but still lets a
+            long one scroll from its true start — `justify-center` on the
+            scroller itself would put the first thumbnails out of reach.
+          */}
+          <div className="overflow-x-auto p-4 no-scrollbar">
+            <div className="mx-auto flex w-max gap-2">
+              {images.map((img, i) => (
+                <button
+                  key={img.id}
+                  onClick={() => setActive(i)}
+                  aria-label={`View photo ${i + 1}`}
+                  className={cn(
+                    "relative aspect-[4/3] h-14 w-20 shrink-0 overflow-hidden rounded-lg border-2 transition",
+                    i === active ? "border-gold" : "border-transparent opacity-60",
+                  )}
+                >
+                  <Image src={img.url} alt="" fill sizes="80px" className="object-cover" />
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -219,7 +228,8 @@ function NavArrow({
         dir === "left" ? "left-3" : "right-3",
         light
           ? "bg-white/10 text-white hover:bg-white/20"
-          : "bg-black/50 text-white opacity-0 group-hover:opacity-100 hover:bg-black/70",
+          : // Always visible on touch screens, which have no hover to reveal it.
+            "bg-black/50 text-white hover:bg-black/70 lg:opacity-0 lg:group-hover:opacity-100",
       )}
     >
       {dir === "left" ? (

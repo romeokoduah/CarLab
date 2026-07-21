@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -32,7 +31,6 @@ import { CarCard } from "@/components/site/car-card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStore } from "@/lib/store";
-import { useMounted } from "@/lib/hooks";
 import { formatMileage } from "@/lib/utils";
 import { getSessionKey, sendBeacon } from "@/lib/customer";
 import type { Car, DiscountResult } from "@/lib/types";
@@ -49,6 +47,10 @@ export function CarDetail({
   const recordEvent = useStore((s) => s.recordEvent);
   const viewed = useRef(false);
   const [discount, setDiscount] = useState<DiscountResult | null>(null);
+  // Drives the phone-only bottom bar: it appears once the main Enquire button
+  // has scrolled out of view above, so buyers can always act on the car.
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const [ctaPassed, setCtaPassed] = useState(false);
 
   // The server already resolved this car, so it paints immediately; once the
   // store has loaded we prefer it so admin edits appear without a reload.
@@ -68,6 +70,20 @@ export function CarDetail({
       });
     }
   }, [car, recordEvent]);
+
+  useEffect(() => {
+    const el = ctaRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([entry]) =>
+        setCtaPassed(
+          !entry.isIntersecting && entry.boundingClientRect.top < 0,
+        ),
+      { threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [car?.id]);
 
   if (!car && !hydrated && !initialCar) return <DetailSkeleton />;
 
@@ -152,64 +168,28 @@ export function CarDetail({
         <ArrowLeft className="h-4 w-4" /> Back to inventory
       </Link>
 
-      <div className="grid gap-8 lg:grid-cols-[1.55fr_1fr]">
-        {/* Left: gallery + details */}
-        <div>
+      {/*
+        Three blocks in one grid. On phones they stack in DOM order — photos,
+        then the price and Enquire button, then the detail — so a buyer never
+        has to scroll past the whole spec sheet to see what the car costs. From
+        `lg` up they are placed explicitly into the classic two-column layout.
+
+        `minmax(0,…)` on both tracks, and `min-w-0` on each block, stop a wide
+        child (the photo filmstrip, which is as wide as the photo count) from
+        setting the column's minimum width and blowing the page out sideways.
+      */}
+      <div className="grid gap-6 md:gap-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+        {/* Photos */}
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
           <Gallery images={car.images} title={title} videoUrl={car.videoUrl} />
-
-          <div className="mt-8">
-            <h2 className="text-lg font-semibold">Overview</h2>
-            <p className="mt-3 leading-relaxed text-muted-foreground">
-              {car.description}
-            </p>
-          </div>
-
-          {/* Specs */}
-          <div className="mt-8">
-            <h2 className="text-lg font-semibold">Specifications</h2>
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {specs.map((s) => (
-                <div
-                  key={s.label}
-                  className="rounded-xl border border-border bg-card p-3.5"
-                >
-                  <s.icon className="h-4 w-4 text-gold" />
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    {s.label}
-                  </div>
-                  <div className="text-sm font-medium">{s.value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Features */}
-          {car.features.length > 0 && (
-            <div className="mt-8">
-              <h2 className="text-lg font-semibold">Features</h2>
-              <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {car.features.map((f) => (
-                  <li
-                    key={f}
-                    className="flex items-center gap-2 text-sm text-muted-foreground"
-                  >
-                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-gold/10 text-gold">
-                      <Check className="h-3 w-3" />
-                    </span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
 
-        {/* Right: sticky purchase panel */}
-        <div>
-          <div className="sticky top-20 space-y-4">
-            <div className="rounded-2xl border border-border bg-card p-5">
+        {/* Purchase panel */}
+        <div className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2">
+          <div className="lg:sticky lg:top-20">
+            <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <StatusBadge status={car.status} />
                     {car.verified && (
@@ -218,7 +198,7 @@ export function CarDetail({
                       </Badge>
                     )}
                   </div>
-                  <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+                  <h1 className="mt-2 break-words text-xl font-semibold tracking-tight sm:text-2xl">
                     {title}
                   </h1>
                   <p className="mt-0.5 text-sm text-muted-foreground">
@@ -228,7 +208,7 @@ export function CarDetail({
                 <FavouriteButton carId={car.id} carTitle={title} />
               </div>
 
-              <div className="mt-4 text-3xl">
+              <div className="mt-4 text-2xl sm:text-3xl">
                 <Price ghs={car.priceGhs} discountedGhs={finalGhs} />
               </div>
 
@@ -236,7 +216,7 @@ export function CarDetail({
                 <DiscountBox car={car} onApplied={setDiscount} />
               </div>
 
-              <div className="mt-4 space-y-2">
+              <div ref={ctaRef} className="mt-4 space-y-2">
                 <WhatsAppButton
                   car={car}
                   finalPriceGhs={finalGhs}
@@ -252,12 +232,65 @@ export function CarDetail({
             </div>
           </div>
         </div>
+
+        {/* Overview, specs and features */}
+        <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+          {car.description.trim() && (
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold">Overview</h2>
+              <p className="mt-3 leading-relaxed text-muted-foreground">
+                {car.description}
+              </p>
+            </div>
+          )}
+
+          {/* Specs */}
+          <div>
+            <h2 className="text-lg font-semibold">Specifications</h2>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {specs.map((s) => (
+                <div
+                  key={s.label}
+                  className="min-w-0 rounded-xl border border-border bg-card p-3 sm:p-3.5"
+                >
+                  <s.icon className="h-4 w-4 text-gold" />
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    {s.label}
+                  </div>
+                  <div className="break-words text-sm font-medium">
+                    {s.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Features */}
+          {car.features.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-lg font-semibold">Features</h2>
+              <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {car.features.map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-start gap-2 text-sm text-muted-foreground"
+                  >
+                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-gold/10 text-gold">
+                      <Check className="h-3 w-3" />
+                    </span>
+                    <span className="min-w-0 break-words">{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Similar cars */}
       {similar.length > 0 && (
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold tracking-tight">
+        <section className="mt-12 md:mt-16">
+          <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
             Similar vehicles
           </h2>
           <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -267,24 +300,53 @@ export function CarDetail({
           </div>
         </section>
       )}
+
+      {/*
+        Phone-only action bar. Appears once the Enquire button has scrolled off
+        the top, so the price and a way to act are always one tap away. Hidden
+        from `lg` up, where the purchase panel is already sticky.
+      */}
+      {ctaPassed && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 lg:hidden">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs text-muted-foreground">{title}</p>
+              <div className="text-lg">
+                <Price ghs={car.priceGhs} discountedGhs={finalGhs} />
+              </div>
+            </div>
+            <WhatsAppButton
+              car={car}
+              finalPriceGhs={finalGhs}
+              discountCode={discount?.ok ? discount.code?.code : undefined}
+              label="Enquire"
+              className="shrink-0"
+            />
+          </div>
+        </div>
+      )}
+      {/* Keeps the bar from covering the last of the page on phones. */}
+      {ctaPassed && <div aria-hidden className="h-20 lg:hidden" />}
     </div>
   );
 }
 
 function DetailSkeleton() {
   return (
-    <div className="container py-10">
-      <div className="grid gap-8 lg:grid-cols-[1.55fr_1fr]">
-        <div>
-          <Skeleton className="aspect-[16/10] w-full rounded-2xl" />
-          <div className="mt-3 flex gap-2">
+    <div className="container py-6 md:py-10">
+      <div className="grid gap-6 md:gap-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+        <div className="min-w-0">
+          <Skeleton className="aspect-[4/3] w-full rounded-2xl sm:aspect-[16/10]" />
+          <div className="mt-3 flex gap-2 overflow-hidden">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 w-24 rounded-xl" />
+              <Skeleton
+                key={i}
+                className="h-14 w-20 shrink-0 rounded-xl sm:h-16 sm:w-24"
+              />
             ))}
           </div>
-          <Skeleton className="mt-8 h-24 w-full" />
         </div>
-        <div className="space-y-4">
+        <div className="min-w-0">
           <Skeleton className="h-72 w-full rounded-2xl" />
         </div>
       </div>
