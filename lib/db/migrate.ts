@@ -72,9 +72,12 @@ export async function migrate(): Promise<void> {
 
   if ((await count("settings")) === 0) {
     await pool.query(
-      `INSERT INTO settings (id, dealer_name, whatsapp_number, ghs_per_usd)
-       VALUES (1, $1, $2, $3)`,
-      [SITE_CONFIG.dealerName, SITE_CONFIG.whatsappNumber, SITE_CONFIG.ghsPerUsd],
+      `INSERT INTO settings (id, dealer_name, whatsapp_number, ghs_per_usd, ghs_per_rmb)
+       VALUES (1, $1, $2, $3, $4)`,
+      [
+        SITE_CONFIG.dealerName, SITE_CONFIG.whatsappNumber,
+        SITE_CONFIG.ghsPerUsd, SITE_CONFIG.ghsPerRmb,
+      ],
     );
     console.log("seeded settings");
   }

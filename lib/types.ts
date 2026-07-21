@@ -56,6 +56,19 @@ export interface Car {
   horsepower?: number;
   previousOwners?: number;
   registrationStatus?: RegistrationStatus;
+
+  // ── Landed-cost breakdown (admin only; see lib/pricing.ts) ──
+  // Stored so a saved listing can always explain how its price was reached,
+  // including the exchange rates that applied on the day. Never rendered on
+  // the public site.
+  /** Purchase price agreed in China. */
+  costCarRmb?: number;
+  /** Insurance + inland transport + inspection. */
+  costLogisticsRmb?: number;
+  costProfitRmb?: number;
+  costShippingUsd?: number;
+  rateGhsPerRmb?: number;
+  rateGhsPerUsd?: number;
 }
 
 export type DiscountType = "percent" | "fixed";
@@ -88,6 +101,8 @@ export interface Settings {
   dealerName: string;
   whatsappNumber: string;
   ghsPerUsd: number;
+  /** Cedis per Chinese yuan, used to price imported stock. */
+  ghsPerRmb: number;
 }
 
 export type Currency = "GHS" | "USD";

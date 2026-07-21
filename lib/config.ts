@@ -12,6 +12,7 @@ export const SITE_CONFIG = {
   dealerName: process.env.NEXT_PUBLIC_DEALER_NAME || "Eclipse Motors",
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "233201234567",
   ghsPerUsd: Number(process.env.NEXT_PUBLIC_GHS_PER_USD) || 15.5,
+  ghsPerRmb: Number(process.env.NEXT_PUBLIC_GHS_PER_RMB) || 2.1,
   tagline: "Ghana's premium pre-owned & new car showroom",
   location: "Accra, Ghana",
 } as const;

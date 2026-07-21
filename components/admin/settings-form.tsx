@@ -25,23 +25,30 @@ export function SettingsForm() {
   const [dealerName, setDealerName] = useState(settings.dealerName);
   const [whatsappNumber, setWhatsappNumber] = useState(settings.whatsappNumber);
   const [rate, setRate] = useState(String(settings.ghsPerUsd));
+  const [rmbRate, setRmbRate] = useState(String(settings.ghsPerRmb));
   const [resetOpen, setResetOpen] = useState(false);
 
   const save = (e: React.FormEvent) => {
     e.preventDefault();
     const numRate = Number(rate);
+    const numRmbRate = Number(rmbRate);
     if (!whatsappNumber.replace(/\D/g, "")) {
       toast.error("Enter a valid WhatsApp number.");
       return;
     }
     if (!numRate || numRate <= 0) {
-      toast.error("Enter a valid exchange rate.");
+      toast.error("Enter a valid USD exchange rate.");
+      return;
+    }
+    if (!numRmbRate || numRmbRate <= 0) {
+      toast.error("Enter a valid RMB exchange rate.");
       return;
     }
     updateSettings({
       dealerName: dealerName.trim() || "Eclipse Motors",
       whatsappNumber: whatsappNumber.replace(/\D/g, ""),
       ghsPerUsd: numRate,
+      ghsPerRmb: numRmbRate,
     });
     toast.success("Settings saved");
   };
@@ -85,7 +92,22 @@ export function SettingsForm() {
           <p className="text-xs text-muted-foreground">
             1 USD = {rate || "?"} GHS. Example: a{" "}
             {formatPrice(500000, "GHS", Number(rate) || 1)} car shows as{" "}
-            {formatPrice(500000, "USD", Number(rate) || 1)}.
+            {formatPrice(500000, "USD", Number(rate) || 1)}. Also used for the
+            shipping line in the vehicle cost breakdown.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>GHS → RMB rate</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={rmbRate}
+            onChange={(e) => setRmbRate(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            1 RMB (¥) = {rmbRate || "?"} GHS. Pre-fills the cost breakdown when
+            you add a vehicle; you can still override it on any single listing.
           </p>
         </div>
 

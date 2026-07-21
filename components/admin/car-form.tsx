@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { X, Plus } from "lucide-react";
+import { X, Plus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,13 @@ import {
 } from "@/components/ui/select";
 import { ImageManager } from "@/components/admin/image-manager";
 import { useStore } from "@/lib/store";
+import {
+  LOGISTICS_RMB,
+  computeFinalPriceGhs,
+  defaultsForBody,
+  hasBreakdown,
+} from "@/lib/pricing";
+import { formatPrice } from "@/lib/currency";
 import { toast } from "sonner";
 import {
   ALL_MAKES,
@@ -82,9 +89,23 @@ interface FormState {
   horsepower: string;
   previousOwners: string;
   registrationStatus: string;
+  // cost breakdown (kept as strings so the inputs can be cleared)
+  costCarRmb: string;
+  costLogisticsRmb: string;
+  costProfitRmb: string;
+  costShippingUsd: string;
+  rateGhsPerRmb: string;
+  rateGhsPerUsd: string;
+  /** Price typed by hand instead of derived from the breakdown. */
+  manualPrice: boolean;
 }
 
-function initFrom(car?: Car): FormState {
+/** Blank when undefined, so an untouched optional cost reads as empty. */
+const str = (n: number | undefined): string => (n == null ? "" : String(n));
+
+function initFrom(car: Car | undefined, rates: Rates): FormState {
+  const body = car?.bodyType ?? "SUV";
+  const byBody = defaultsForBody(body);
   return {
     make: car?.make ?? "",
     model: car?.model ?? "",
@@ -111,7 +132,20 @@ function initFrom(car?: Car): FormState {
     previousOwners:
       car?.previousOwners != null ? String(car.previousOwners) : "",
     registrationStatus: car?.registrationStatus ?? "",
+    costCarRmb: str(car?.costCarRmb),
+    costLogisticsRmb: str(car?.costLogisticsRmb ?? LOGISTICS_RMB),
+    costProfitRmb: str(car?.costProfitRmb ?? byBody.profitRmb),
+    costShippingUsd: str(car?.costShippingUsd ?? byBody.shippingUsd),
+    rateGhsPerRmb: str(car?.rateGhsPerRmb ?? rates.ghsPerRmb),
+    rateGhsPerUsd: str(car?.rateGhsPerUsd ?? rates.ghsPerUsd),
+    // Existing listings without a breakdown keep their hand-typed price.
+    manualPrice: car ? !hasBreakdown({ carRmb: car.costCarRmb }) : false,
   };
+}
+
+interface Rates {
+  ghsPerRmb: number;
+  ghsPerUsd: number;
 }
 
 const num = (s: string): number | undefined => {
@@ -122,13 +156,53 @@ const num = (s: string): number | undefined => {
 export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
   const addCar = useStore((s) => s.addCar);
   const updateCar = useStore((s) => s.updateCar);
-  const [f, setF] = useState<FormState>(() => initFrom(car));
+  const settings = useStore((s) => s.settings);
+  const [f, setF] = useState<FormState>(() =>
+    initFrom(car, {
+      ghsPerRmb: settings.ghsPerRmb,
+      ghsPerUsd: settings.ghsPerUsd,
+    }),
+  );
   const [featureDraft, setFeatureDraft] = useState("");
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setF((prev) => ({ ...prev, [key]: value }));
 
   const modelOptions = useMemo(() => modelsForMake(f.make), [f.make]);
+
+  const breakdown = {
+    carRmb: num(f.costCarRmb),
+    logisticsRmb: num(f.costLogisticsRmb),
+    profitRmb: num(f.costProfitRmb),
+    shippingUsd: num(f.costShippingUsd),
+    ghsPerRmb: num(f.rateGhsPerRmb),
+    ghsPerUsd: num(f.rateGhsPerUsd),
+  };
+  const computedPrice = computeFinalPriceGhs(breakdown);
+  const displayPrice = f.manualPrice ? f.priceGhs : (computedPrice ?? 0);
+
+  /** Margin and shipping follow the body class, so refill them on change. */
+  const setBodyType = (bodyType: BodyType) => {
+    const d = defaultsForBody(bodyType);
+    setF((prev) => ({
+      ...prev,
+      bodyType,
+      costProfitRmb: String(d.profitRmb),
+      costShippingUsd: String(d.shippingUsd),
+    }));
+  };
+
+  const resetCostDefaults = () => {
+    const d = defaultsForBody(f.bodyType);
+    setF((prev) => ({
+      ...prev,
+      costLogisticsRmb: String(LOGISTICS_RMB),
+      costProfitRmb: String(d.profitRmb),
+      costShippingUsd: String(d.shippingUsd),
+      rateGhsPerRmb: String(settings.ghsPerRmb),
+      rateGhsPerUsd: String(settings.ghsPerUsd),
+    }));
+  };
 
   const toggleFeature = (name: string) =>
     set(
@@ -156,11 +230,37 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
       toast.error("Add at least one image.");
       return;
     }
+    if (!f.manualPrice && computedPrice == null) {
+      toast.error(
+        "Enter the car price in RMB and both exchange rates, or switch on manual pricing.",
+      );
+      return;
+    }
+    // A manually priced listing keeps no breakdown — the stored costs must
+    // always be the ones that produced the price on show.
+    const costs = f.manualPrice
+      ? {
+          costCarRmb: undefined,
+          costLogisticsRmb: undefined,
+          costProfitRmb: undefined,
+          costShippingUsd: undefined,
+          rateGhsPerRmb: undefined,
+          rateGhsPerUsd: undefined,
+        }
+      : {
+          costCarRmb: breakdown.carRmb,
+          costLogisticsRmb: breakdown.logisticsRmb,
+          costProfitRmb: breakdown.profitRmb,
+          costShippingUsd: breakdown.shippingUsd,
+          rateGhsPerRmb: breakdown.ghsPerRmb,
+          rateGhsPerUsd: breakdown.ghsPerUsd,
+        };
     const payload = {
+      ...costs,
       make: f.make.trim(),
       model: f.model.trim(),
       year: f.year,
-      priceGhs: f.priceGhs,
+      priceGhs: displayPrice,
       mileageKm: f.mileageKm,
       transmission: f.transmission,
       fuel: f.fuel,
@@ -227,6 +327,123 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
         </div>
       </section>
 
+      {/* Cost breakdown */}
+      <section>
+        <SectionTitle>
+          Cost breakdown
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            builds the cedi price — never shown to buyers
+          </span>
+        </SectionTitle>
+        <div className="rounded-2xl border border-border bg-muted/30 p-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <Field
+              label="Body type"
+              hint="Sets the profit &amp; shipping below"
+            >
+              <EnumSelect
+                value={f.bodyType}
+                options={BODIES}
+                onChange={(v) => setBodyType(v as BodyType)}
+              />
+            </Field>
+            <Field label="Car price (¥ RMB)" hint="What you pay in China">
+              <Input
+                type="number"
+                value={f.costCarRmb}
+                onChange={(e) => set("costCarRmb", e.target.value)}
+                placeholder="e.g. 80000"
+                disabled={f.manualPrice}
+              />
+            </Field>
+            <Field
+              label="Logistics (¥ RMB)"
+              hint="Insurance, transport &amp; inspection"
+            >
+              <Input
+                type="number"
+                value={f.costLogisticsRmb}
+                onChange={(e) => set("costLogisticsRmb", e.target.value)}
+                disabled={f.manualPrice}
+              />
+            </Field>
+            <Field label="Profit (¥ RMB)" hint={`Set by body type — ${f.bodyType}`}>
+              <Input
+                type="number"
+                value={f.costProfitRmb}
+                onChange={(e) => set("costProfitRmb", e.target.value)}
+                disabled={f.manualPrice}
+              />
+            </Field>
+            <Field label="Shipping ($ USD)" hint={`Set by body type — ${f.bodyType}`}>
+              <Input
+                type="number"
+                value={f.costShippingUsd}
+                onChange={(e) => set("costShippingUsd", e.target.value)}
+                disabled={f.manualPrice}
+              />
+            </Field>
+            <Field label="GHS per ¥1 RMB" hint="Today's rate">
+              <Input
+                type="number"
+                step="0.01"
+                value={f.rateGhsPerRmb}
+                onChange={(e) => set("rateGhsPerRmb", e.target.value)}
+                disabled={f.manualPrice}
+              />
+            </Field>
+            <Field label="GHS per $1 USD" hint="Today's rate">
+              <Input
+                type="number"
+                step="0.01"
+                value={f.rateGhsPerUsd}
+                onChange={(e) => set("rateGhsPerUsd", e.target.value)}
+                disabled={f.manualPrice}
+              />
+            </Field>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+            <div className="text-sm">
+              <span className="text-muted-foreground">Final price: </span>
+              <span className="font-semibold text-gold">
+                {computedPrice != null
+                  ? formatPrice(computedPrice, "GHS", settings.ghsPerUsd)
+                  : "—"}
+              </span>
+              {computedPrice != null && (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  (¥{(breakdown.carRmb ?? 0).toLocaleString()} + ¥
+                  {(breakdown.logisticsRmb ?? 0).toLocaleString()} + ¥
+                  {(breakdown.profitRmb ?? 0).toLocaleString()}) × {breakdown.ghsPerRmb}{" "}
+                  + ${(breakdown.shippingUsd ?? 0).toLocaleString()} ×{" "}
+                  {breakdown.ghsPerUsd}
+                </p>
+              )}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={resetCostDefaults}
+              disabled={f.manualPrice}
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Reset to defaults
+            </Button>
+          </div>
+
+          <div className="mt-4 flex items-center gap-2.5 border-t border-border pt-4">
+            <Switch
+              checked={f.manualPrice}
+              onCheckedChange={(v) => set("manualPrice", v)}
+            />
+            <span className="text-sm text-muted-foreground">
+              Set price manually (ignore this breakdown)
+            </span>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing & basics */}
       <section>
         <SectionTitle>Pricing &amp; basics</SectionTitle>
@@ -238,11 +455,20 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
               onChange={(e) => set("year", Number(e.target.value))}
             />
           </Field>
-          <Field label="Price (GHS)">
+          <Field
+            label="Price (GHS)"
+            hint={
+              f.manualPrice
+                ? "Typed by hand"
+                : "From the cost breakdown above"
+            }
+          >
             <Input
               type="number"
-              value={f.priceGhs}
+              value={displayPrice}
               onChange={(e) => set("priceGhs", Number(e.target.value))}
+              readOnly={!f.manualPrice}
+              className={!f.manualPrice ? "bg-muted/50" : undefined}
             />
           </Field>
           <Field label="Mileage (km)">
@@ -332,15 +558,13 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
 
       {/* Body & capacity */}
       <section>
-        <SectionTitle>Body &amp; capacity</SectionTitle>
+        <SectionTitle>
+          Capacity
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            body type is set in the cost breakdown
+          </span>
+        </SectionTitle>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <Field label="Body type">
-            <EnumSelect
-              value={f.bodyType}
-              options={BODIES}
-              onChange={(v) => set("bodyType", v as BodyType)}
-            />
-          </Field>
           <Field label="Seats">
             <OptionalSelect
               value={f.seats}

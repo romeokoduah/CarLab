@@ -29,6 +29,18 @@ interface CarRow {
   horsepower: number | null;
   previous_owners: number | null;
   registration_status: Car["registrationStatus"] | null;
+  // numeric -> string from pg
+  cost_car_rmb: string | null;
+  cost_logistics_rmb: string | null;
+  cost_profit_rmb: string | null;
+  cost_shipping_usd: string | null;
+  rate_ghs_per_rmb: string | null;
+  rate_ghs_per_usd: string | null;
+}
+
+/** pg returns `numeric` as a string; keep NULL distinct from 0. */
+function numOrUndef(v: string | null): number | undefined {
+  return v == null ? undefined : Number(v);
 }
 
 interface ImageRow {
@@ -71,6 +83,12 @@ function mapCar(r: CarRow, images: CarImage[]): Car {
     horsepower: r.horsepower ?? undefined,
     previousOwners: r.previous_owners ?? undefined,
     registrationStatus: r.registration_status ?? undefined,
+    costCarRmb: numOrUndef(r.cost_car_rmb),
+    costLogisticsRmb: numOrUndef(r.cost_logistics_rmb),
+    costProfitRmb: numOrUndef(r.cost_profit_rmb),
+    costShippingUsd: numOrUndef(r.cost_shipping_usd),
+    rateGhsPerRmb: numOrUndef(r.rate_ghs_per_rmb),
+    rateGhsPerUsd: numOrUndef(r.rate_ghs_per_usd),
   };
 }
 
@@ -93,7 +111,9 @@ const CAR_COLUMNS = `make=$2, model=$3, year=$4, price_ghs=$5, mileage_km=$6,
   transmission=$7, fuel=$8, body_type=$9, colour=$10, condition=$11,
   description=$12, features=$13, video_url=$14, status=$15, verified=$16,
   engine_capacity=$17, drivetrain=$18, seats=$19, doors=$20, cylinders=$21,
-  horsepower=$22, previous_owners=$23, registration_status=$24`;
+  horsepower=$22, previous_owners=$23, registration_status=$24,
+  cost_car_rmb=$25, cost_logistics_rmb=$26, cost_profit_rmb=$27,
+  cost_shipping_usd=$28, rate_ghs_per_rmb=$29, rate_ghs_per_usd=$30`;
 
 function carValues(id: string, c: Omit<Car, "id" | "createdAt" | "images">) {
   return [
@@ -102,6 +122,8 @@ function carValues(id: string, c: Omit<Car, "id" | "createdAt" | "images">) {
     c.videoUrl ?? null, c.status, c.verified, c.engineCapacity ?? null,
     c.drivetrain ?? null, c.seats ?? null, c.doors ?? null, c.cylinders ?? null,
     c.horsepower ?? null, c.previousOwners ?? null, c.registrationStatus ?? null,
+    c.costCarRmb ?? null, c.costLogisticsRmb ?? null, c.costProfitRmb ?? null,
+    c.costShippingUsd ?? null, c.rateGhsPerRmb ?? null, c.rateGhsPerUsd ?? null,
   ];
 }
 
@@ -138,9 +160,11 @@ export async function dbCreateCar(
     `INSERT INTO cars (id, make, model, year, price_ghs, mileage_km,
        transmission, fuel, body_type, colour, condition, description, features,
        video_url, status, verified, engine_capacity, drivetrain, seats, doors,
-       cylinders, horsepower, previous_owners, registration_status)
+       cylinders, horsepower, previous_owners, registration_status,
+       cost_car_rmb, cost_logistics_rmb, cost_profit_rmb, cost_shipping_usd,
+       rate_ghs_per_rmb, rate_ghs_per_usd)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
-       $19,$20,$21,$22,$23,$24)`,
+       $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30)`,
     carValues(id, input),
   );
   await replaceImages(id, input.images ?? []);

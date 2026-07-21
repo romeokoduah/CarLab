@@ -79,6 +79,7 @@ const defaultSettings: Settings = {
   dealerName: SITE_CONFIG.dealerName,
   whatsappNumber: SITE_CONFIG.whatsappNumber,
   ghsPerUsd: SITE_CONFIG.ghsPerUsd,
+  ghsPerRmb: SITE_CONFIG.ghsPerRmb,
 };
 
 export const useStore = create<StoreState>()(

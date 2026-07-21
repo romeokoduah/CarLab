@@ -28,6 +28,15 @@ CREATE TABLE IF NOT EXISTS cars (
   registration_status text
 );
 
+-- Landed-cost breakdown. Nullable: listings priced by hand (and everything
+-- created before this feature) simply have no breakdown.
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS cost_car_rmb       numeric;
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS cost_logistics_rmb numeric;
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS cost_profit_rmb    numeric;
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS cost_shipping_usd  numeric;
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS rate_ghs_per_rmb   numeric;
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS rate_ghs_per_usd   numeric;
+
 CREATE TABLE IF NOT EXISTS car_images (
   id       text PRIMARY KEY,
   car_id   text NOT NULL REFERENCES cars(id) ON DELETE CASCADE,
@@ -57,6 +66,7 @@ CREATE TABLE IF NOT EXISTS settings (
   ghs_per_usd    numeric NOT NULL,
   CONSTRAINT settings_singleton CHECK (id = 1)
 );
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS ghs_per_rmb numeric NOT NULL DEFAULT 2.1;
 
 -- Import-duty rate table (single row). Editable from the admin so rates can be
 -- updated each national budget without a code change.
