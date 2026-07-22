@@ -221,7 +221,13 @@ export function RequestACar() {
 
               {error && <p className="text-sm text-destructive">{error}</p>}
 
-              <Button type="submit" size="lg" className="w-full" disabled={busy}>
+              <Button
+                type="submit"
+                variant="gold"
+                size="lg"
+                className="w-full"
+                disabled={busy}
+              >
                 <Search className="h-4 w-4" />
                 {busy ? "Sending…" : "Send my request"}
               </Button>
