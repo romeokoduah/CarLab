@@ -3,6 +3,7 @@ import { StatsBand } from "@/components/site/stats-band";
 import { FeaturedCars } from "@/components/site/featured-cars";
 import { BrandMarquee } from "@/components/site/brand-marquee";
 import { HowItWorks } from "@/components/site/how-it-works";
+import { RequestACar } from "@/components/site/request-a-car";
 import { CtaBand } from "@/components/site/cta-band";
 import { getCars } from "@/lib/api";
 
@@ -21,6 +22,7 @@ export default async function HomePage() {
       <FeaturedCars initialCars={cars} />
       <BrandMarquee />
       <HowItWorks />
+      <RequestACar />
       <CtaBand />
     </>
   );

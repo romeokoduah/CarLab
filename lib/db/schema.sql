@@ -141,3 +141,49 @@ CREATE TABLE IF NOT EXISTS reservations (
   expires_at  timestamptz
 );
 CREATE INDEX IF NOT EXISTS idx_reservations_car ON reservations(car_id, status);
+
+-- ── "Source me this car" requests from the landing page ────────────────────
+-- Hangs off leads so a requester gets the same reference as any other
+-- customer, appears in the Customers directory, and is removed with them when
+-- a privacy deletion is actioned.
+CREATE TABLE IF NOT EXISTS car_requests (
+  id         text PRIMARY KEY,
+  lead_id    text NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  make       text,
+  model      text,
+  body_type  text,
+  year_from  int,
+  budget_ghs bigint,
+  notes      text,
+  status     text NOT NULL DEFAULT 'new',
+  admin_note text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_car_requests_status
+  ON car_requests(status, created_at DESC);
+
+-- ── Sales receipts ─────────────────────────────────────────────────────────
+-- Customer and vehicle details are SNAPSHOT onto the row on purpose: a receipt
+-- is a financial document and must keep reading the same even after the
+-- listing is edited or deleted. Receipts are voided, never deleted.
+CREATE TABLE IF NOT EXISTS receipts (
+  id              text PRIMARY KEY,
+  receipt_no      text UNIQUE NOT NULL,
+  car_id          text REFERENCES cars(id) ON DELETE SET NULL,
+  lead_id         text REFERENCES leads(id) ON DELETE SET NULL,
+  customer_name   text NOT NULL,
+  customer_phone  text,
+  customer_email  text,
+  vehicle_label   text NOT NULL,
+  vehicle_details text,
+  vin             text,
+  price_ghs       bigint NOT NULL,
+  amount_paid_ghs bigint NOT NULL,
+  payment_method  text,
+  payment_ref     text,
+  notes           text,
+  status          text NOT NULL DEFAULT 'issued',
+  issued_by       text,
+  issued_at       timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_receipts_issued ON receipts(issued_at DESC);

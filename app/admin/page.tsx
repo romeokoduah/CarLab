@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   LogOut,
   ExternalLink,
+  Inbox,
+  ReceiptText,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -25,6 +27,8 @@ import { SettingsForm } from "@/components/admin/settings-form";
 import { DutyRatesForm } from "@/components/admin/duty-rates-form";
 import { LeadsPanel } from "@/components/admin/leads-panel";
 import { ReservationsPanel } from "@/components/admin/reservations-panel";
+import { RequestsPanel } from "@/components/admin/requests-panel";
+import { ReceiptsPanel } from "@/components/admin/receipts-panel";
 import { AdminsPanel } from "@/components/admin/admins-panel";
 import { PasswordForm } from "@/components/admin/password-form";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -130,6 +134,18 @@ export default function AdminPage() {
               <Users className="h-4 w-4" /> Customers
             </TabsTrigger>
             <TabsTrigger
+              value="requests"
+              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+            >
+              <Inbox className="h-4 w-4" /> Requests
+            </TabsTrigger>
+            <TabsTrigger
+              value="receipts"
+              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+            >
+              <ReceiptText className="h-4 w-4" /> Receipts
+            </TabsTrigger>
+            <TabsTrigger
               value="reservations"
               className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
             >
@@ -173,6 +189,12 @@ export default function AdminPage() {
           </TabsContent>
           <TabsContent value="customers">
             <LeadsPanel />
+          </TabsContent>
+          <TabsContent value="requests">
+            <RequestsPanel />
+          </TabsContent>
+          <TabsContent value="receipts">
+            <ReceiptsPanel />
           </TabsContent>
           <TabsContent value="reservations">
             <ReservationsPanel />

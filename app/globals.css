@@ -115,3 +115,30 @@
     scrollbar-width: none;
   }
 }
+
+/* ── Printing a receipt ─────────────────────────────────────────────────────
+   The receipt is rendered inside the admin SPA rather than on its own route,
+   so there is no URL that could serve a customer's details to anyone who
+   guesses it. Printing therefore has to hide the rest of the dashboard:
+   `visibility` (not `display`) so the print area keeps its layout. */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #receipt-print,
+  #receipt-print * {
+    visibility: visible !important;
+  }
+  #receipt-print {
+    position: absolute !important;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+    background: #fff;
+    color: #000;
+  }
+  @page {
+    margin: 16mm;
+  }
+}
