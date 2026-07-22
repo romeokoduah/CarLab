@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,40 @@ const FACET_FIELD: Record<string, (c: Car) => string> = {
   conditions: (c) => c.condition,
   colours: (c) => c.colour,
 };
+
+/**
+ * Where the shopper was in the results when they opened a car.
+ *
+ * The filters themselves survive a back-navigation already — they live in the
+ * URL. What was lost was the shopper's place in the list: opening the twelfth
+ * result and coming back dropped them at the top of the page to hunt for it
+ * again. Saved per-tab and only when a car is actually opened from these
+ * results, so arriving at /inventory fresh still starts at the top.
+ */
+const SCROLL_KEY = "em_inventory_scroll";
+/** Long enough to read a listing and come back; short enough to go stale. */
+const SCROLL_TTL_MS = 30 * 60 * 1000;
+
+interface SavedScroll {
+  query: string;
+  y: number;
+  at: number;
+}
+
+function readSavedScroll(): SavedScroll | null {
+  try {
+    const raw = sessionStorage.getItem(SCROLL_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SavedScroll;
+    if (typeof parsed?.y !== "number" || typeof parsed?.query !== "string") {
+      return null;
+    }
+    if (Date.now() - (parsed.at ?? 0) > SCROLL_TTL_MS) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
 
 function facetCounts(cars: Car[], filters: Filters) {
   const map: Record<string, Record<string, number>> = {};
@@ -121,6 +155,48 @@ export function InventoryClient({
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
+
+  // Remember the position only when a car is opened from these results, so a
+  // deliberate visit to /inventory is never hijacked back down the page.
+  const rememberScroll = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement | null;
+    if (!target?.closest?.('a[href^="/car/"]')) return;
+    try {
+      sessionStorage.setItem(
+        SCROLL_KEY,
+        JSON.stringify({ query: urlQuery, y: window.scrollY, at: Date.now() }),
+      );
+    } catch {
+      // Private-browsing quota: losing the position is not worth an error.
+    }
+  };
+
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current || !ready) return;
+    restoredRef.current = true;
+
+    const saved = readSavedScroll();
+    // Only for the same result set — a different search deserves the top.
+    if (!saved || saved.query !== urlQuery || saved.y <= 0) return;
+    try {
+      sessionStorage.removeItem(SCROLL_KEY);
+    } catch {
+      /* nothing to clean up */
+    }
+
+    // Cards carry fixed aspect ratios, but images and fonts can still settle
+    // after the first paint — retry briefly until the position sticks.
+    let attempts = 0;
+    const settle = () => {
+      window.scrollTo(0, saved.y);
+      if (++attempts < 6 && Math.abs(window.scrollY - saved.y) > 4) {
+        setTimeout(settle, 60);
+      }
+    };
+    const raf = requestAnimationFrame(settle);
+    return () => cancelAnimationFrame(raf);
+  }, [ready, urlQuery]);
 
   const onChange = (patch: Partial<Filters>) =>
     setFilters((f) => ({ ...f, ...patch }));
@@ -271,7 +347,7 @@ export function InventoryClient({
         </aside>
 
         {/* Results */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1" onClick={rememberScroll}>
           {!ready ? (
             <CarGridSkeleton count={6} />
           ) : results.length > 0 ? (
