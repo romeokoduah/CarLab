@@ -14,6 +14,7 @@ export const SITE_CONFIG = {
   whatsappNumberAlt: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER_ALT || "",
   ghsPerUsd: Number(process.env.NEXT_PUBLIC_GHS_PER_USD) || 15.5,
   ghsPerRmb: Number(process.env.NEXT_PUBLIC_GHS_PER_RMB) || 2.1,
-  tagline: "Ghana's premium pre-owned & new car showroom",
+  tagline: "Premium vehicles imported to order for Ghana",
+  /** Where we deliver to — not a shop you can walk into. */
   location: "Accra, Ghana",
 } as const;

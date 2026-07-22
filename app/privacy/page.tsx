@@ -46,8 +46,8 @@ export default async function PrivacyPage() {
           </h2>
           <p className="mt-2">
             Solely to respond to your enquiry: to answer questions about a
-            vehicle, arrange a viewing, and — if you ask us to — hold a vehicle
-            for you. We rely on your consent, which you give by ticking the box
+            vehicle, quote you for importing it, and — if you ask us to — hold a
+            vehicle for you. We rely on your consent, which you give by ticking the box
             on the enquiry form. You can withdraw it at any time.
           </p>
         </section>

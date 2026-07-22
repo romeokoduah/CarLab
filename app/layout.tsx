@@ -18,20 +18,22 @@ const sora = Sora({
 
 export const metadata: Metadata = {
   title: {
-    default: `${SITE_CONFIG.dealerName} — Premium Cars in Ghana`,
+    default: `${SITE_CONFIG.dealerName} — Car Import to Ghana`,
     template: `%s · ${SITE_CONFIG.dealerName}`,
   },
   description: SITE_CONFIG.tagline,
+  // Aimed at people looking to import a car, not to walk into a lot.
   keywords: [
+    "import cars to Ghana",
+    "car import Ghana",
+    "vehicle import Accra",
+    "import duty calculator Ghana",
     "cars for sale Ghana",
-    "premium cars Accra",
-    "used cars Ghana",
-    "car dealership",
     SITE_CONFIG.dealerName,
   ],
   metadataBase: new URL("https://eclipsemotors.org"),
   openGraph: {
-    title: `${SITE_CONFIG.dealerName} — Premium Cars in Ghana`,
+    title: `${SITE_CONFIG.dealerName} — Car Import to Ghana`,
     description: SITE_CONFIG.tagline,
     type: "website",
   },

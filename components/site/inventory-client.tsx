@@ -151,7 +151,7 @@ export function InventoryClient({
               {results.length === 1 ? "car" : "cars"} matching your search
             </>
           ) : (
-            "Loading the showroom…"
+            "Loading available vehicles…"
           )}
         </p>
       </div>

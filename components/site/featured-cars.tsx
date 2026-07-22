@@ -104,7 +104,7 @@ export function FeaturedCars({ initialCars = [] }: { initialCars?: Car[] }) {
             Featured
           </p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            This week&apos;s showroom picks
+            This week&apos;s picks
           </h2>
         </div>
         <Link

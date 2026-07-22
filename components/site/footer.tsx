@@ -29,12 +29,13 @@ export function SiteFooter({ initialSettings }: { initialSettings: Settings }) {
         <div className="md:col-span-2">
           <Logo />
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-            {SITE_CONFIG.tagline}. Every vehicle inspected, documented and ready
-            to drive. Reach us on WhatsApp for a same-day viewing.
+            {SITE_CONFIG.tagline}. Every vehicle inspected and documented
+            before it ships. Message us on WhatsApp for an all-in quote.
           </p>
           <div className="mt-5 flex flex-col gap-2 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-gold" /> {SITE_CONFIG.location}
+              <MapPin className="h-4 w-4 text-gold" /> Delivered to{" "}
+              {SITE_CONFIG.location}
             </span>
             {lines.map((number, i) => (
               <a

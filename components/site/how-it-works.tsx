@@ -1,20 +1,20 @@
-import { Search, MessageCircle, KeyRound } from "lucide-react";
+import { Search, MessageCircle, Ship } from "lucide-react";
 
 const STEPS = [
   {
     icon: Search,
-    title: "Browse the showroom",
-    body: "Filter by make, budget, body type and more. Every listing shows full specs, real photos and transparent pricing in GHS or USD.",
+    title: "Browse available vehicles",
+    body: "Filter by make, budget, body type and more. Every listing shows full specs, real photos and the landed price in GHS or USD.",
   },
   {
     icon: MessageCircle,
     title: "Chat on WhatsApp",
-    body: "Tap enquire and we open WhatsApp with the car details pre-filled. Ask questions, apply a discount code, or book a viewing in seconds.",
+    body: "Tap enquire and we open WhatsApp with the car details pre-filled. Ask questions, apply a discount code, or ask us to source something we don't have listed.",
   },
   {
-    icon: KeyRound,
-    title: "Inspect & drive away",
-    body: "Come see the car, take a test drive and complete the paperwork. We handle registration and hand you the keys.",
+    icon: Ship,
+    title: "We buy, inspect and ship",
+    body: "We purchase the vehicle on your behalf, inspect it and handle the export paperwork. The price shown is landed — import duty is quoted separately, so nothing lands as a surprise at the port.",
   },
 ];
 
@@ -23,7 +23,7 @@ export function HowItWorks() {
     <section className="container py-20">
       <div className="mx-auto max-w-2xl text-center">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-gold">
-          How buying works
+          How importing works
         </p>
         <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
           Three simple steps to your next car

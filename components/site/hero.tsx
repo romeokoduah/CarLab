@@ -2,10 +2,15 @@ import Link from "next/link";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { SITE_CONFIG } from "@/lib/config";
 
+/**
+ * Claims the rest of the site actually backs up: every listing is inspected
+ * before it ships, prices are landed in cedis, and duty has its own estimator
+ * (/duty-calculator) rather than being quietly folded into the price.
+ */
 const TRUST = [
-  "Fully inspected",
-  "Transparent pricing",
-  "Registration handled",
+  "Inspected before shipping",
+  "Landed price in cedis",
+  "Import duty estimated upfront",
 ];
 
 /**
@@ -22,7 +27,7 @@ export function Hero() {
       <div className="container relative py-20 md:py-28">
         <div className="max-w-3xl">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-gold">
-            {SITE_CONFIG.location} · Premium showroom
+            Imported to order · Delivered to {SITE_CONFIG.location}
           </p>
 
           <h1 className="mt-5 text-balance text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl md:text-6xl">
@@ -31,8 +36,8 @@ export function Hero() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Hand-picked, fully inspected vehicles with transparent pricing.
-            Browse the showroom and reach us on WhatsApp for a same-day viewing.
+            We source, inspect and ship vehicles to Ghana. Browse what&apos;s
+            available, then message us on WhatsApp for an all-in quote.
           </p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
