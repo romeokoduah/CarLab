@@ -1,6 +1,7 @@
 import type { Car } from "@/lib/types";
 
 export type SortKey =
+  | "featured"
   | "newest"
   | "price-asc"
   | "price-desc"
@@ -33,7 +34,9 @@ export const EMPTY_FILTERS: Filters = {
   transmissions: [],
   conditions: [],
   colours: [],
-  sort: "newest",
+  // Browsing starts on a shuffled mix, not newest-first, so the whole
+  // inventory gets seen rather than the latest few always sitting on top.
+  sort: "featured",
 };
 
 const LIST_KEYS: (keyof Filters)[] = [
@@ -68,7 +71,7 @@ export function parseFilters(params: URLSearchParams): Filters {
     mileageMax: getNum("mileageMax"),
     priceMin: getNum("priceMin"),
     priceMax: getNum("priceMax"),
-    sort: (params.get("sort") as SortKey) || "newest",
+    sort: (params.get("sort") as SortKey) || "featured",
   };
 }
 
@@ -88,7 +91,7 @@ export function filtersToQuery(f: Filters): string {
   if (f.mileageMax != null) p.set("mileageMax", String(f.mileageMax));
   if (f.priceMin != null) p.set("priceMin", String(f.priceMin));
   if (f.priceMax != null) p.set("priceMax", String(f.priceMax));
-  if (f.sort && f.sort !== "newest") p.set("sort", f.sort);
+  if (f.sort && f.sort !== "featured") p.set("sort", f.sort);
   return p.toString();
 }
 
@@ -239,12 +242,38 @@ export function sortCars(cars: Car[], sort: SortKey): Car[] {
     case "year-desc":
       return arr.sort((a, b) => b.year - a.year);
     case "newest":
-    default:
       return arr.sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
+    case "featured":
+    default:
+      // Order is decided by the caller's seeded shuffle; leave it untouched.
+      return arr;
   }
+}
+
+/**
+ * Deterministic shuffle. Given the same seed and the same cars it always
+ * produces the same order, so paginating and coming back never reshuffles the
+ * list under the shopper — but a fresh seed (a new visit) mixes it up again.
+ * Fisher–Yates driven by a small mulberry32 PRNG.
+ */
+export function seededShuffle<T>(items: T[], seed: number): T[] {
+  const arr = [...items];
+  let s = seed >>> 0;
+  const rand = () => {
+    s |= 0;
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
 /** Distinct values used to build filter options from live inventory. */

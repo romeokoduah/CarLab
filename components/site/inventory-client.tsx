@@ -21,8 +21,11 @@ import {
 } from "@/components/ui/sheet";
 import { FilterPanel } from "@/components/site/filter-panel";
 import { FilterChips } from "@/components/site/filter-chips";
+import { QuickChips } from "@/components/site/quick-chips";
+import { Pagination } from "@/components/site/pagination";
 import { CarGrid } from "@/components/site/car-grid";
 import { CarGridSkeleton } from "@/components/site/car-card-skeleton";
+import { Shuffle } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useDebounced } from "@/lib/hooks";
 import {
@@ -32,18 +35,24 @@ import {
   facetsFrom,
   filtersToQuery,
   parseFilters,
+  seededShuffle,
   type Filters,
   type SortKey,
 } from "@/lib/filters";
 import type { Car } from "@/lib/types";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "featured", label: "Featured" },
   { value: "newest", label: "Newest first" },
   { value: "price-asc", label: "Price: low to high" },
   { value: "price-desc", label: "Price: high to low" },
   { value: "mileage-asc", label: "Lowest mileage" },
   { value: "year-desc", label: "Year: newest" },
 ];
+
+/** Cars per page. A multiple of the 1/2/3-column grid so rows stay full. */
+const PAGE_SIZE = 12;
+const SEED_KEY = "em_shuffle_seed";
 
 const FACET_FIELD: Record<string, (c: Car) => string> = {
   makes: (c) => c.make,
@@ -119,42 +128,88 @@ export function InventoryClient({
   const cars = hydrated ? storeCars : initialCars;
   const ready = hydrated || initialCars.length > 0;
 
+  const initialParams = new URLSearchParams(urlQuery);
   const [filters, setFilters] = useState<Filters>(() =>
-    parseFilters(new URLSearchParams(urlQuery)),
+    parseFilters(initialParams),
+  );
+  const [page, setPage] = useState<number>(() =>
+    Math.max(1, Number(initialParams.get("page")) || 1),
   );
   const [searchDraft, setSearchDraft] = useState(filters.q);
   const debouncedSearch = useDebounced(searchDraft, 300);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Adopt external URL changes (links, back/forward).
+  // A per-session shuffle seed: the browse order is mixed up on a fresh visit
+  // but stays put while paginating or returning from a car in the same tab.
+  const [seed, setSeed] = useState(0);
   useEffect(() => {
-    const incoming = parseFilters(new URLSearchParams(urlQuery));
-    if (filtersToQuery(incoming) !== filtersToQuery(filters)) {
+    let s = Number(sessionStorage.getItem(SEED_KEY));
+    if (!s) {
+      s = (Math.floor(Math.random() * 1e9) + 1) >>> 0;
+      try {
+        sessionStorage.setItem(SEED_KEY, String(s));
+      } catch {
+        /* private mode: a fresh seed each render is fine */
+      }
+    }
+    setSeed(s);
+  }, []);
+
+  const reshuffle = () => {
+    const s = (Math.floor(Math.random() * 1e9) + 1) >>> 0;
+    try {
+      sessionStorage.setItem(SEED_KEY, String(s));
+    } catch {
+      /* ignore */
+    }
+    setSeed(s);
+    setPage(1);
+  };
+
+  // Build the full query, page included, and reflect state -> URL.
+  const buildUrl = (f: Filters, p: number) => {
+    const params = new URLSearchParams(filtersToQuery(f));
+    if (p > 1) params.set("page", String(p));
+    const q = params.toString();
+    return q ? `/inventory?${q}` : "/inventory";
+  };
+
+  // Adopt external URL changes (shared links, back/forward).
+  useEffect(() => {
+    const params = new URLSearchParams(urlQuery);
+    const incoming = parseFilters(params);
+    const incomingPage = Math.max(1, Number(params.get("page")) || 1);
+    if (
+      filtersToQuery(incoming) !== filtersToQuery(filters) ||
+      incomingPage !== page
+    ) {
       setFilters(incoming);
       setSearchDraft(incoming.q);
+      setPage(incomingPage);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlQuery]);
 
-  // Push debounced search into filters.
+  // Push debounced search into filters; a new search always starts on page 1.
   useEffect(() => {
     if (debouncedSearch !== filters.q) {
       setFilters((f) => ({ ...f, q: debouncedSearch }));
+      setPage(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch]);
 
-  // Sync local filters -> URL (debounced, shareable & back-button friendly).
+  // Sync local state -> URL (debounced, shareable & back-button friendly).
   useEffect(() => {
-    const q = filtersToQuery(filters);
+    const href = buildUrl(filters, page);
     const t = setTimeout(() => {
-      if (q !== urlQuery) {
-        router.replace(q ? `/inventory?${q}` : "/inventory", { scroll: false });
-      }
+      const current = urlQuery ? `/inventory?${urlQuery}` : "/inventory";
+      if (href !== current) router.replace(href, { scroll: false });
     }, 200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [filters, page]);
 
   // Remember the position only when a car is opened from these results, so a
   // deliberate visit to /inventory is never hijacked back down the page.
@@ -198,18 +253,48 @@ export function InventoryClient({
     return () => cancelAnimationFrame(raf);
   }, [ready, urlQuery]);
 
-  const onChange = (patch: Partial<Filters>) =>
+  // Any filter/sort change puts the shopper back on page 1 — page 3 of the old
+  // result set is meaningless against a new one.
+  const onChange = (patch: Partial<Filters>) => {
     setFilters((f) => ({ ...f, ...patch }));
+    setPage(1);
+  };
 
   const onReset = () => {
     setFilters(EMPTY_FILTERS);
     setSearchDraft("");
+    setPage(1);
   };
+
+  // In Featured mode the browse order is a seeded shuffle; every other sort is
+  // deterministic, so the shuffle is skipped. Filtering then narrows this.
+  const ordered = useMemo(
+    () =>
+      filters.sort === "featured" && seed
+        ? seededShuffle(cars, seed)
+        : cars,
+    [cars, filters.sort, seed],
+  );
 
   const facets = useMemo(() => facetsFrom(cars), [cars]);
   const counts = useMemo(() => facetCounts(cars, filters), [cars, filters]);
-  const results = useMemo(() => applyFilters(cars, filters), [cars, filters]);
+  const results = useMemo(
+    () => applyFilters(ordered, filters),
+    [ordered, filters],
+  );
   const activeCount = countActiveFilters(filters);
+
+  const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const pageCars = results.slice(pageStart, pageStart + PAGE_SIZE);
+
+  const goToPage = (p: number) => {
+    const next = Math.min(Math.max(1, p), totalPages);
+    setPage(next);
+    // Jump to the top of the results, not the top of the whole page.
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div className="container py-8 md:py-10">
@@ -219,15 +304,22 @@ export function InventoryClient({
           Inventory
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          {ready ? (
+          {!ready ? (
+            "Loading available vehicles…"
+          ) : results.length === 0 ? (
+            "No cars match your search"
+          ) : (
             <>
+              Showing{" "}
+              <span className="font-medium text-foreground">
+                {pageStart + 1}–{pageStart + pageCars.length}
+              </span>{" "}
+              of{" "}
               <span className="font-medium text-foreground">
                 {results.length}
               </span>{" "}
-              {results.length === 1 ? "car" : "cars"} matching your search
+              {results.length === 1 ? "car" : "cars"}
             </>
-          ) : (
-            "Loading available vehicles…"
           )}
         </p>
       </div>
@@ -295,11 +387,25 @@ export function InventoryClient({
             </SheetContent>
           </Sheet>
 
+          {/* Re-mix the featured order on demand. */}
+          {filters.sort === "featured" && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-11 w-11 shrink-0"
+              onClick={reshuffle}
+              aria-label="Shuffle the order"
+              title="Shuffle"
+            >
+              <Shuffle className="h-4 w-4" />
+            </Button>
+          )}
+
           <Select
             value={filters.sort}
             onValueChange={(v) => onChange({ sort: v as SortKey })}
           >
-            <SelectTrigger className="h-11 w-[180px]">
+            <SelectTrigger className="h-11 w-[150px]">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
             <SelectContent>
@@ -312,6 +418,13 @@ export function InventoryClient({
           </Select>
         </div>
       </div>
+
+      {/* One-tap quick filters */}
+      <QuickChips
+        bodyTypes={facets.bodyTypes}
+        filters={filters}
+        onChange={onChange}
+      />
 
       {/* Chips */}
       {activeCount > 0 && (
@@ -347,11 +460,22 @@ export function InventoryClient({
         </aside>
 
         {/* Results */}
-        <div className="min-w-0 flex-1" onClick={rememberScroll}>
+        <div
+          ref={resultsRef}
+          className="min-w-0 flex-1 scroll-mt-24"
+          onClick={rememberScroll}
+        >
           {!ready ? (
             <CarGridSkeleton count={6} />
           ) : results.length > 0 ? (
-            <CarGrid cars={results} />
+            <>
+              <CarGrid cars={pageCars} />
+              <Pagination
+                page={safePage}
+                totalPages={totalPages}
+                onPage={goToPage}
+              />
+            </>
           ) : (
             <EmptyState onReset={onReset} />
           )}
