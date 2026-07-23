@@ -22,10 +22,22 @@ import sharp, { type OverlayOptions } from "sharp";
 import type { InferenceSession, Tensor } from "onnxruntime-node";
 
 const SIZE = 640;
-const CONF = 0.5;
 const IOU = 0.45;
-const MIN_ASPECT = 1.6; // plates are wide; squarish boxes are false positives
+// Aspect (width/height) sanity bounds. The low bound is deliberately below 1
+// so a plate seen at a steep angle — whose axis-aligned box goes nearly
+// square — is still allowed through.
+const MIN_ASPECT = 0.7;
 const MAX_ASPECT = 9;
+// Confidence gating, graded by shape. A plate photographed head-on is a wide
+// rectangle and safe to accept at moderate confidence. A plate on a *tilted*
+// car foreshortens into a squarish box — indistinguishable by shape alone
+// from a false positive (a seat panel, a wheel), so we only accept a squarish
+// box when the model is highly confident it is a plate. This catches angled
+// plates the old flat "must be wide" rule dropped, without re-admitting the
+// interior false positives that rule was there to reject.
+const WIDE_CONF = 0.5; // wide (aspect ≥ WIDE_ASPECT) plates
+const SQUARE_CONF = 0.6; // squarish/angled plates need more confidence
+const WIDE_ASPECT = 1.6;
 
 function modelPath(): string {
   return (
@@ -139,11 +151,15 @@ export async function blurPlates(input: Buffer): Promise<Buffer> {
     const dets: Box[] = [];
     for (let i = 0; i < n; i++) {
       const score = data[4 * n + i];
-      if (score < CONF) continue;
+      if (score < WIDE_CONF) continue;
       const cw = data[2 * n + i];
       const ch = data[3 * n + i];
       const aspect = cw / ch;
       if (aspect < MIN_ASPECT || aspect > MAX_ASPECT) continue;
+      // A squarish box is only a plate if the model is very sure — otherwise
+      // it is a foreshortened angled plate we still want, or a false positive
+      // we do not. Confidence is what separates the two.
+      if (aspect < WIDE_ASPECT && score < SQUARE_CONF) continue;
       const cx = data[i];
       const cy = data[n + i];
       dets.push({
