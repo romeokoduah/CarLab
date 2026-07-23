@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { compressToTarget } from "@/lib/images";
+import { blurPlates } from "@/lib/import/plate-blur";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,7 +39,10 @@ export async function POST(req: Request) {
 
   let compressed: Buffer;
   try {
-    compressed = (await compressToTarget(original)).buffer;
+    // Blur any number plate BEFORE compressing, so it is covered at full
+    // resolution. Fail-open: an un-detectable plate never blocks the upload.
+    const safe = await blurPlates(original);
+    compressed = (await compressToTarget(safe)).buffer;
   } catch {
     return NextResponse.json(
       { error: "Could not process that image." },

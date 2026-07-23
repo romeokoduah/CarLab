@@ -6,6 +6,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Native addons must stay external — Next must not try to bundle them.
+  experimental: {
+    serverComponentsExternalPackages: ["onnxruntime-node", "sharp"],
+  },
   images: {
     // Uploads are served directly by nginx from /uploads/; no image server.
     unoptimized: true,

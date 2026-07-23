@@ -6,6 +6,7 @@ import { requireSuperAdmin } from "@/lib/auth-server";
 import { Che168ImportError, scrapeChe168Listing } from "@/lib/import/che168";
 import { DeepSeekImportError } from "@/lib/import/deepseek";
 import { compressToTarget } from "@/lib/images";
+import { blurPlates } from "@/lib/import/plate-blur";
 import { dbGetSettings } from "@/lib/db/settings";
 import {
   computeFinalPriceGhs,
@@ -38,7 +39,8 @@ async function downloadAndStore(url: string): Promise<CarImage | null> {
     });
     if (!res.ok) return null;
     const original = Buffer.from(await res.arrayBuffer());
-    const { buffer } = await compressToTarget(original);
+    const safe = await blurPlates(original);
+    const { buffer } = await compressToTarget(safe);
     const dir = uploadDir();
     await mkdir(dir, { recursive: true });
     const name = `${randomUUID()}.webp`;

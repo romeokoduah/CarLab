@@ -34,3 +34,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# license-plate detection model (fetched at deploy, not committed)
+/models/
