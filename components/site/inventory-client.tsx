@@ -268,13 +268,18 @@ export function InventoryClient({
 
   // In Featured mode the browse order is a seeded shuffle; every other sort is
   // deterministic, so the shuffle is skipped. Filtering then narrows this.
-  const ordered = useMemo(
-    () =>
-      filters.sort === "featured" && seed
-        ? seededShuffle(cars, seed)
-        : cars,
-    [cars, filters.sort, seed],
-  );
+  //
+  // The shuffle runs over a canonically-sorted copy (by id), NOT the array as
+  // it happens to arrive: a Fisher–Yates permutes positions, so shuffling the
+  // SSR order and the hydrated-store order with the same seed would otherwise
+  // give two different results and the list would jump. Sorting first makes
+  // the order a pure function of (car set, seed) — stable across hydration,
+  // pagination and back-navigation.
+  const ordered = useMemo(() => {
+    if (filters.sort !== "featured" || !seed) return cars;
+    const canonical = [...cars].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    return seededShuffle(canonical, seed);
+  }, [cars, filters.sort, seed]);
 
   const facets = useMemo(() => facetsFrom(cars), [cars]);
   const counts = useMemo(() => facetCounts(cars, filters), [cars, filters]);
