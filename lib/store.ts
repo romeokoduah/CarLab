@@ -46,6 +46,8 @@ interface StoreState {
   favourites: string[];
   currency: Currency;
   settings: Settings;
+  /** Dealer-registered makes → models, merged with the static catalogue. */
+  registryMakeModels: Record<string, string[]>;
   hydrated: boolean;
 
   // data loading
@@ -95,19 +97,24 @@ export const useStore = create<StoreState>()(
       favourites: [],
       currency: "GHS",
       settings: defaultSettings,
+      registryMakeModels: {},
       hydrated: false,
 
       hydrate: async () => {
         try {
-          const [c, d, s] = await Promise.all([
+          const [c, d, s, r] = await Promise.all([
             jsonFetch<{ cars: Car[] }>("/api/cars"),
             jsonFetch<{ discounts: DiscountCode[] }>("/api/discounts"),
             jsonFetch<{ settings: Settings }>("/api/settings"),
+            jsonFetch<{ makeModels: Record<string, string[]> }>(
+              "/api/vehicle-registry",
+            ).catch(() => ({ makeModels: {} })),
           ]);
           set({
             cars: c.cars,
             discounts: d.discounts,
             settings: s.settings,
+            registryMakeModels: r.makeModels ?? {},
             hydrated: true,
           });
         } catch (err) {

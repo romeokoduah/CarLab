@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { getPool } from "@/lib/db/pool";
 import { previewReprice, type Rates } from "@/lib/pricing";
+import { dbRegisterVehicle } from "@/lib/db/vehicle-registry";
 import type { Car, CarImage } from "@/lib/types";
 
 /** A `cars` row, with columns typed as the domain unions we always write. */
@@ -175,6 +176,8 @@ export async function dbCreateCar(
     carValues(id, input),
   );
   await replaceImages(id, input.images ?? []);
+  // Grow the registry so this make/model is a ready option next time.
+  await dbRegisterVehicle(input.make, input.model);
   return (await dbGetCarById(id))!;
 }
 
@@ -190,6 +193,7 @@ export async function dbUpdateCar(
     carValues(id, merged),
   );
   if (patch.images) await replaceImages(id, patch.images);
+  await dbRegisterVehicle(merged.make, merged.model);
   return dbGetCarById(id);
 }
 

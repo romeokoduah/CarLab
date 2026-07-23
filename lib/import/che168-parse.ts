@@ -9,6 +9,33 @@ import type { BodyType, Drivetrain, Fuel, Transmission } from "@/lib/types";
 
 export class Che168ParseError extends Error {}
 
+/**
+ * The numeric car id out of ANY che168 link.
+ *
+ * che168 uses several URL shapes and every one of them ends in the car id:
+ *   www.che168.com/dealer/676896/59072492.html   (dealer listing)
+ *   www.che168.com/<city>/59072492.html          (city listing)
+ *   global.che168.com/en/detail/59072492         (English mirror)
+ * plus a tail of ?query and #hash junk. We take the last id-shaped run in the
+ * path so a new link shape keeps working without a code change.
+ */
+export function parseSrcId(rawUrl: string): string | null {
+  let path: string;
+  try {
+    path = new URL(rawUrl).pathname;
+  } catch {
+    return null;
+  }
+  // `/detail/<id>` (EN) or `<id>.html` (CN) first — the precise, known forms.
+  const detail = path.match(/\/detail\/(\d{5,})/);
+  if (detail) return detail[1];
+  const html = path.match(/(\d{5,})\.html$/);
+  if (html) return html[1];
+  // Fall back to the last long numeric segment anywhere in the path.
+  const all = path.match(/\d{5,}/g);
+  return all?.length ? all[all.length - 1] : null;
+}
+
 /** Reads a `Label\nValue` pair out of the English page's details block. */
 export function field(block: string, label: string): string {
   const re = new RegExp(`${label}\\n([^\\n]*)`, "i");
@@ -34,6 +61,13 @@ export function parseCnMileage(text: string): number | undefined {
 export function parseCnTransfers(text: string): number {
   const m = text.match(/过户次数(\d+)次/);
   return m ? parseInt(m[1], 10) : 0;
+}
+
+/** First-registration year from the Chinese archive (上牌时间2023年10月). */
+export function parseCnYear(text: string): number | undefined {
+  const m = text.match(/上牌时间\s*(\d{4})年/);
+  const y = m ? parseInt(m[1], 10) : NaN;
+  return y >= 1980 && y <= 2100 ? y : undefined;
 }
 
 // ── Make / model ───────────────────────────────────────────────────────────
@@ -174,4 +208,135 @@ export function mapBodyType(bodyTypeField: string, classField: string): BodyType
   if (v.includes("coupe")) return "Coupe";
   if (v.includes("van") || v.includes("mpv")) return "Van";
   return "SUV";
+}
+
+// ── Reconciling the deterministic read with the AI's full extraction ─────────
+
+export const BODY_TYPES: BodyType[] = [
+  "SUV", "Sedan", "Hatchback", "Pickup", "Coupe", "Van",
+];
+export const FUELS: Fuel[] = ["Petrol", "Diesel", "Hybrid", "Electric"];
+export const TRANSMISSIONS: Transmission[] = ["Automatic", "Manual"];
+export const DRIVETRAINS: Drivetrain[] = ["FWD", "RWD", "AWD", "4WD"];
+
+/** What DeepSeek returns after reading the page — every field it could find. */
+export interface ExtractedListing {
+  make: string;
+  model: string;
+  trim: string;
+  year?: number;
+  mileageKm?: number;
+  colour: string;
+  bodyType?: BodyType;
+  fuel?: Fuel;
+  transmission?: Transmission;
+  drivetrain?: Drivetrain;
+  seats?: number;
+  doors?: number;
+  cylinders?: number;
+  horsepower?: number;
+  engineCapacity?: string;
+  carRmb?: number;
+  description: string;
+  features: string[];
+}
+
+/** What the scraper reads with regex — the hard numbers that must be exact. */
+export interface DeterministicFacts {
+  carRmb?: number;
+  mileageKm?: number;
+  year?: number;
+  previousOwners: number;
+  /** Only set when the English breadcrumb was present (reliable when it is). */
+  make?: string;
+  model?: string;
+  trim?: string;
+  /** English colour, if the EN mirror was alive. */
+  colour?: string;
+}
+
+export interface ReconciledListing {
+  make: string;
+  model: string;
+  trim: string;
+  year: number;
+  mileageKm: number;
+  colour: string;
+  previousOwners: number;
+  carRmb: number;
+  bodyType: BodyType;
+  fuel: Fuel;
+  transmission: Transmission;
+  drivetrain?: Drivetrain;
+  seats?: number;
+  doors?: number;
+  cylinders?: number;
+  horsepower?: number;
+  engineCapacity?: string;
+  description: string;
+  features: string[];
+}
+
+const oneOf = <T>(value: unknown, allowed: readonly T[]): T | undefined =>
+  allowed.includes(value as T) ? (value as T) : undefined;
+
+const posInt = (n: unknown): number | undefined =>
+  typeof n === "number" && Number.isInteger(n) && n > 0 ? n : undefined;
+
+/**
+ * Merge the deterministic read with the AI's extraction.
+ *
+ * The three hard numbers a wrong value would cost money or mislead on — price,
+ * mileage, registration year — are taken from the literal regex read whenever
+ * it succeeded, with the AI only as a fallback. The make and model prefer the
+ * English breadcrumb (reliable when present, e.g. sorts sub-brands correctly)
+ * and fall back to the AI, which is essential when the English mirror is dead
+ * and only the Chinese page describes the car. Everything descriptive is the
+ * AI's, since it read the whole page; deterministic EN values are the backup.
+ */
+export function reconcileListing(
+  det: DeterministicFacts,
+  ai: ExtractedListing,
+): ReconciledListing {
+  const carRmb = det.carRmb ?? posInt(ai.carRmb);
+  if (!carRmb) {
+    throw new Che168ParseError("Could not read the asking price from that listing.");
+  }
+  const mileageKm = det.mileageKm ?? posInt(ai.mileageKm);
+  if (mileageKm == null) {
+    throw new Che168ParseError("Could not read the mileage from that listing.");
+  }
+
+  const make = firstNonEmpty(det.make, ai.make) || "Unknown";
+  const model = firstNonEmpty(det.model, ai.model) || "Unknown";
+
+  return {
+    make,
+    model,
+    trim: firstNonEmpty(det.trim, ai.trim),
+    year: det.year ?? posInt(ai.year) ?? new Date().getFullYear(),
+    mileageKm,
+    colour: firstNonEmpty(ai.colour, det.colour) || "Unspecified",
+    previousOwners: det.previousOwners,
+    carRmb,
+    bodyType: oneOf(ai.bodyType, BODY_TYPES) ?? "SUV",
+    fuel: oneOf(ai.fuel, FUELS) ?? "Petrol",
+    transmission: oneOf(ai.transmission, TRANSMISSIONS) ?? "Automatic",
+    drivetrain: oneOf(ai.drivetrain, DRIVETRAINS),
+    seats: posInt(ai.seats),
+    doors: posInt(ai.doors),
+    cylinders: posInt(ai.cylinders),
+    horsepower: posInt(ai.horsepower),
+    engineCapacity: ai.engineCapacity?.trim() || undefined,
+    description: ai.description.trim(),
+    features: [...new Set(ai.features.map((f) => f.trim()).filter(Boolean))],
+  };
+}
+
+function firstNonEmpty(...vals: (string | undefined)[]): string {
+  for (const v of vals) {
+    const t = v?.trim();
+    if (t && t.toLowerCase() !== "unknown") return t;
+  }
+  return "";
 }

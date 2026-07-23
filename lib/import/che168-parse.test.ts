@@ -9,8 +9,13 @@ import {
   parseCnMileage,
   parseCnPrice,
   parseCnTransfers,
+  parseCnYear,
   parseMakeModelTrim,
+  parseSrcId,
+  reconcileListing,
   splitModelName,
+  type DeterministicFacts,
+  type ExtractedListing,
 } from "@/lib/import/che168-parse";
 
 /**
@@ -193,4 +198,129 @@ test("fuel, transmission, drivetrain and body map onto our unions", () => {
   assert.equal(mapBodyType("", "MPV"), "Van");
   // Unknown shapes fall back to SUV, the overwhelmingly common import.
   assert.equal(mapBodyType("", ""), "SUV");
+});
+
+test("registration year is read from the Chinese archive", () => {
+  assert.equal(parseCnYear("上牌时间2023年10月"), 2023);
+  assert.equal(parseCnYear("上牌时间 2021年01月"), 2021);
+  assert.equal(parseCnYear("no date"), undefined);
+});
+
+// ── URL id extraction across che168 link shapes ─────────────────────────────
+
+test("the car id is pulled from every che168 link shape", () => {
+  assert.equal(
+    parseSrcId("https://www.che168.com/dealer/676896/59072492.html?pvareaid=100519#pos=1"),
+    "59072492",
+  );
+  assert.equal(
+    parseSrcId("https://www.che168.com/shanghai/59072492.html"),
+    "59072492",
+  );
+  assert.equal(
+    parseSrcId("https://global.che168.com/en/detail/59072492?fromsource=x"),
+    "59072492",
+  );
+  // Dealer id in the path must not be mistaken for the car id.
+  assert.equal(
+    parseSrcId("https://www.che168.com/dealer/539175/59044612.html"),
+    "59044612",
+  );
+  assert.equal(parseSrcId("not a url"), null);
+  assert.equal(parseSrcId("https://www.che168.com/"), null);
+});
+
+// ── Reconciling deterministic reads with the AI extraction ──────────────────
+
+const AI_FULL: ExtractedListing = {
+  make: "Rising Auto",
+  model: "R7",
+  trim: "Advanced",
+  year: 2024,
+  mileageKm: 31000,
+  colour: "White",
+  bodyType: "SUV",
+  fuel: "Electric",
+  transmission: "Automatic",
+  drivetrain: "RWD",
+  seats: 5,
+  doors: 5,
+  cylinders: undefined,
+  horsepower: 340,
+  engineCapacity: "Electric · 77 kWh",
+  carRmb: 55000,
+  description: "2024 Rising Auto R7 Advanced, 30,000 km, white.",
+  features: ["Panoramic roof", "360° camera", "Panoramic roof"],
+};
+
+test("the literal price and mileage win over the AI's numbers", () => {
+  const det: DeterministicFacts = {
+    carRmb: 55000,
+    mileageKm: 30000, // CN 表显里程3万公里 = 30000, AI guessed 31000
+    year: 2023, // CN 上牌时间2023年, AI said 2024
+    previousOwners: 0,
+  };
+  const r = reconcileListing(det, AI_FULL);
+  assert.equal(r.carRmb, 55000);
+  assert.equal(r.mileageKm, 30000);
+  assert.equal(r.year, 2023);
+});
+
+test("the AI fills make/model/colour when the English mirror was dead", () => {
+  // No breadcrumb make/model/colour — mirror was sold.
+  const det: DeterministicFacts = {
+    carRmb: 55000,
+    mileageKm: 30000,
+    year: 2023,
+    previousOwners: 0,
+  };
+  const r = reconcileListing(det, AI_FULL);
+  assert.equal(r.make, "Rising Auto");
+  assert.equal(r.model, "R7");
+  assert.equal(r.colour, "White");
+  assert.equal(r.fuel, "Electric");
+  assert.equal(r.drivetrain, "RWD");
+  assert.equal(r.horsepower, 340);
+  // Features are de-duplicated.
+  assert.deepEqual(r.features, ["Panoramic roof", "360° camera"]);
+});
+
+test("the breadcrumb make/model is preferred over the AI's when present", () => {
+  const det: DeterministicFacts = {
+    carRmb: 66600,
+    mileageKm: 47800,
+    year: 2021,
+    previousOwners: 0,
+    make: "Changan",
+    model: "UNI-K",
+    trim: "2.0T Excellence",
+    colour: "White",
+  };
+  const ai: ExtractedListing = { ...AI_FULL, make: "Changan Auto", model: "UNIK" };
+  const r = reconcileListing(det, ai);
+  assert.equal(r.make, "Changan");
+  assert.equal(r.model, "UNI-K");
+  assert.equal(r.trim, "2.0T Excellence");
+});
+
+test("a price readable by neither is a hard error, never a zero", () => {
+  const det: DeterministicFacts = { mileageKm: 30000, previousOwners: 0 };
+  const ai: ExtractedListing = { ...AI_FULL, carRmb: undefined };
+  assert.throws(() => reconcileListing(det, ai));
+});
+
+test("invalid AI enums fall back to safe defaults rather than corrupting a field", () => {
+  const det: DeterministicFacts = { carRmb: 55000, mileageKm: 30000, previousOwners: 0 };
+  const ai: ExtractedListing = {
+    ...AI_FULL,
+    bodyType: "Crossover" as ExtractedListing["bodyType"],
+    fuel: "EV" as ExtractedListing["fuel"],
+    transmission: "DCT" as ExtractedListing["transmission"],
+    drivetrain: "2WD" as ExtractedListing["drivetrain"],
+  };
+  const r = reconcileListing(det, ai);
+  assert.equal(r.bodyType, "SUV");
+  assert.equal(r.fuel, "Petrol");
+  assert.equal(r.transmission, "Automatic");
+  assert.equal(r.drivetrain, undefined);
 });

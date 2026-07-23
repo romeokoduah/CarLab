@@ -64,6 +64,16 @@ const REGISTRATION_OPTIONS: RegistrationStatus[] = [
 
 const NONE = "__none__";
 
+/** Union of two option lists, case-insensitively de-duplicated, sorted. */
+function mergeUnique(base: string[], extra: string[]): string[] {
+  const seen = new Map<string, string>();
+  for (const v of [...base, ...extra]) {
+    const t = v?.trim();
+    if (t && !seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t);
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
+}
+
 interface FormState {
   make: string;
   model: string;
@@ -172,6 +182,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
   );
   const [featureDraft, setFeatureDraft] = useState("");
   const role = useAuth((s) => s.role);
+  const registryMakeModels = useStore((s) => s.registryMakeModels);
   const [importUrl, setImportUrl] = useState("");
   const [importing, setImporting] = useState(false);
   /** Flags the auto-filled fields for review — the scrape can misread a trim. */
@@ -180,7 +191,18 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setF((prev) => ({ ...prev, [key]: value }));
 
-  const modelOptions = useMemo(() => modelsForMake(f.make), [f.make]);
+  // Static catalogue + everything the dealer has actually registered, so a
+  // freshly-imported marque (e.g. a new Chinese EV brand) is offered next time.
+  const makeOptions = useMemo(
+    () => mergeUnique(ALL_MAKES, Object.keys(registryMakeModels)),
+    [registryMakeModels],
+  );
+  const modelOptions = useMemo(() => {
+    const key = Object.keys(registryMakeModels).find(
+      (m) => m.toLowerCase() === f.make.trim().toLowerCase(),
+    );
+    return mergeUnique(modelsForMake(f.make), key ? registryMakeModels[key] : []);
+  }, [f.make, registryMakeModels]);
 
   const breakdown = {
     carRmb: num(f.costCarRmb),
@@ -452,7 +474,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
             <Combobox
               value={f.make}
               onChange={(v) => set("make", v)}
-              options={ALL_MAKES}
+              options={makeOptions}
               placeholder="e.g. Toyota, Chery, BYD…"
               addHint="Add make"
             />

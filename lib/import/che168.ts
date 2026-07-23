@@ -1,127 +1,61 @@
 /**
- * Server-side scraper for a che168.com dealer listing.
+ * Server-side scraper for a che168.com listing.
  *
- * che168 blocks plain `fetch` (Cloudflare-style checks), so every read here
- * goes through a real headless browser. Two pages are read per listing:
- *  - the Chinese dealer page (`www.che168.com/dealer/.../<id>.html`) — the
- *    only place the RMB asking price, mileage, first-registration date,
- *    transfer count and the dealer's own "highlight" tags live.
- *  - the English mirror (`global.che168.com/en/detail/<id>`) — clean English
- *    vehicle details (engine, drivetrain, dimensions, colour) plus the
- *    per-tab configuration sheet, where "●" marks a fitted item and "-"
- *    marks one that is NOT fitted.
+ * The Chinese dealer page (the link the admin pastes) is the source of truth:
+ * it carries the RMB asking price, mileage, registration date, transfer count,
+ * every photo, and the dealer's highlight tags — for every car, including ones
+ * whose English mirror has been taken down or marked sold. The English mirror
+ * (`global.che168.com/en/detail/<id>`) is read opportunistically for cleaner
+ * English specs and its per-tab "●" config sheet, but the import no longer
+ * depends on it.
  *
- * Everything with a definite, factual value (year, mileage, price, engine,
- * drivetrain, seats…) is parsed deterministically with regexes below — never
- * guessed. The per-tab "●" sheets and the dealer's highlight tags are instead
- * bundled as `specContext` for the DeepSeek step, which only turns confirmed
- * rows into prose and a feature list — it never invents a field this module
- * couldn't read.
+ * che168 blocks plain `fetch`, so every read goes through a headless browser.
+ * The hard numbers (price, mileage, year) are parsed deterministically here;
+ * DeepSeek reads the full page text and returns every other field plus the
+ * copy; `reconcileListing` merges the two so a literal price read can never be
+ * overridden by the model.
  */
-import { chromium } from "playwright";
+import { chromium, type Browser } from "playwright";
 import {
   Che168ParseError,
   field,
-  mapBodyType,
-  mapDrivetrain,
-  mapFuel,
-  mapTransmission,
+  parseBreadcrumbMakeModel,
   parseCnMileage,
   parseCnPrice,
   parseCnTransfers,
-  parseMakeModelTrim,
+  parseCnYear,
+  parseSrcId,
+  reconcileListing,
+  splitModelName,
+  type DeterministicFacts,
+  type ReconciledListing,
 } from "@/lib/import/che168-parse";
-import type { BodyType, Drivetrain, Fuel, Transmission } from "@/lib/types";
-
-const SPEC_TAB_RE =
-  /^(Passive Safety|Active Safety|Driving & Handling|Driving Hardware|Driving Functions|Exterior & Anti-Theft|Exterior Lighting|Sunroof & Glass|Exterior Mirrors|Connectivity & Intelligence|Steering Wheel & Interior Rearview Mirror|Interior Charging|Seat Features|Audio & Interior Lighting|Air Conditioning & Refrigerator)$/;
+import { canonicalMake } from "@/lib/data/vehicles";
+import { extractListing } from "@/lib/import/deepseek";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
-/** Dealer "highlight" tags are a fixed platform vocabulary — translate what we recognise. */
-const CN_HIGHLIGHT_MAP: Record<string, string[]> = {
-  "并线辅助": ["Blind-spot monitor"],
-  "主动刹车/主动安全系统": ["Automatic emergency braking"],
-  "ISOFIX儿童座椅接口": ["ISOFIX child seats"],
-  "自动驻车": ["Auto hold"],
-  "电动后备厢": ["Power tailgate"],
-  "无钥匙启动系统": ["Keyless entry", "Push-button start"],
-  "全液晶仪表盘": ["Digital instrument cluster"],
-  "蓝牙/车载电话": ["Bluetooth"],
-  "车联网": ["Connected-car (IoT) services"],
-  "OTA升级": ["Over-the-air (OTA) software updates"],
-  "车内PM2.5过滤装置": ["In-car air purifier"],
-  "转向辅助灯": ["Cornering-assist headlamps"],
-  "车道保持辅助系统": ["Lane-keep assist"],
-  "车道偏离预警系统": ["Forward collision warning"],
-  "全景大天窗": ["Panoramic roof"],
-  "360全景摄像头": ["360° camera"],
-};
+const SPEC_TAB_RE =
+  /^(Passive Safety|Active Safety|Driving & Handling|Driving Hardware|Driving Functions|Exterior & Anti-Theft|Exterior Lighting|Sunroof & Glass|Exterior Mirrors|Connectivity & Intelligence|Steering Wheel & Interior Rearview Mirror|Interior Charging|Seat Features|Audio & Interior Lighting|Air Conditioning & Refrigerator)$/;
 
-export interface RawListing {
+export interface RawListing extends ReconciledListing {
   sourceUrl: string;
   srcId: string;
-  make: string;
-  model: string;
-  trim: string;
-  year: number;
-  mileageKm: number;
-  colour: string;
-  previousOwners: number;
-  carRmb: number;
-  bodyType: BodyType;
-  transmission: Transmission;
-  fuel: Fuel;
-  drivetrain?: Drivetrain;
-  seats?: number;
-  doors?: number;
-  cylinders?: number;
-  horsepower?: number;
-  engineCapacity?: string;
   imageUrls: string[];
-  /** Raw ● config-sheet dumps + translated dealer highlight tags, for the AI step. */
-  specContext: string;
-  /** Untranslated highlight phrases we don't have a dictionary entry for. */
-  unrecognisedHighlights: string[];
+  /** True when the English mirror was alive and contributed specs. */
+  enMirrorUsed: boolean;
 }
 
 export class Che168ImportError extends Error {}
 
-function parseSrcId(url: URL): string {
-  const m = url.pathname.match(/\/(\d+)\.html$/);
-  if (!m) throw new Che168ImportError("That doesn't look like a che168 listing link (expected .../<id>.html).");
-  return m[1];
-}
-
-function parseCnHighlights(text: string): { features: string[]; unrecognised: string[] } {
-  const start = text.indexOf("配置亮点");
-  if (start < 0) return { features: [], unrecognised: [] };
-  const end = text.indexOf("配置可能存在加改装");
-  const block = text.slice(start + 4, end > start ? end : start + 600);
-  const phrases = block
-    .split("\n")
-    .map((s) => s.trim())
-    .filter((s) => s && s !== "更多亮点配置" && s.length < 20);
-
-  const features: string[] = [];
-  const unrecognised: string[] = [];
-  for (const p of phrases) {
-    const mapped = CN_HIGHLIGHT_MAP[p];
-    if (mapped) features.push(...mapped);
-    else unrecognised.push(p);
-  }
-  return { features, unrecognised };
-}
-
-async function extractCn(url: string) {
-  const browser = await chromium.launch();
+async function extractCn(browser: Browser, url: string) {
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 1200 },
+    userAgent: UA,
+    locale: "zh-CN",
+  });
   try {
-    const page = await browser.newPage({
-      viewport: { width: 1440, height: 1200 },
-      userAgent: UA,
-      locale: "zh-CN",
-    });
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
     await page.waitForTimeout(3500);
     await page.evaluate(async () => {
@@ -131,7 +65,9 @@ async function extractCn(url: string) {
       }
     });
     await page.waitForTimeout(1500);
-    const text: string = await page.evaluate(() => document.body.innerText.replace(/\n{2,}/g, "\n"));
+    const text: string = await page.evaluate(() =>
+      document.body.innerText.replace(/\n{2,}/g, "\n"),
+    );
     const images: string[] = await page.evaluate(() =>
       [...new Set(
         [...document.querySelectorAll("img")]
@@ -142,37 +78,45 @@ async function extractCn(url: string) {
     );
     return { text, images };
   } finally {
-    await browser.close();
+    await page.close();
   }
 }
 
-async function extractEn(srcId: string) {
-  const url = `https://global.che168.com/en/detail/${srcId}`;
-  const browser = await chromium.launch();
+/**
+ * The English mirror, or null if it is missing/sold. Never throws — the import
+ * proceeds on the Chinese page alone when this comes back empty.
+ */
+async function extractEn(browser: Browser, srcId: string) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1400 } });
   try {
-    const page = await browser.newPage({ viewport: { width: 1440, height: 1400 } });
-    await page.goto(url, { waitUntil: "networkidle", timeout: 60000 });
-    await page.waitForTimeout(2500);
+    await page.goto(`https://global.che168.com/en/detail/${srcId}`, {
+      waitUntil: "networkidle",
+      timeout: 45000,
+    });
+    await page.waitForTimeout(2000);
     await page.evaluate(async () => {
       for (let y = 0; y < document.body.scrollHeight; y += 600) {
         window.scrollTo(0, y);
-        await new Promise((r) => setTimeout(r, 90));
+        await new Promise((r) => setTimeout(r, 80));
       }
     });
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(1200);
 
     const head: string = await page.evaluate(() =>
       document.body.innerText.replace(/\n{3,}/g, "\n").slice(0, 6000),
     );
+    // A sold or missing listing has no vehicle details to offer.
+    if (/vehicle has been sold|Vehicle Details/i.test(head) === false) {
+      return null;
+    }
+    if (/vehicle has been sold/i.test(head)) {
+      // Photos may still be present even when marked sold, so grab them, but
+      // there is no reliable spec block — hand back only the images.
+      const images = await enImages(page);
+      return { head: "", specSheet: "", images, alive: false };
+    }
 
-    const images: string[] = await page.evaluate(() =>
-      [...new Set(
-        [...document.querySelectorAll("img")]
-          .flatMap((el) => [el.src, el.getAttribute("data-src"), el.getAttribute("data-original")])
-          .filter((s): s is string => !!s && /autoimg\.cn/.test(s) && /1400x0_/.test(s))
-          .map((s) => s.split("?")[0]),
-      )],
-    );
+    const images = await enImages(page);
 
     const tabs: string[] = await page.evaluate(
       (re) => [
@@ -184,43 +128,55 @@ async function extractEn(srcId: string) {
       ],
       SPEC_TAB_RE.source,
     );
-
     const specParts: string[] = [];
     for (const tab of tabs) {
       try {
-        await page.locator(`text="${tab}"`).first().click({ timeout: 4000 });
-        await page.waitForTimeout(700);
+        await page.locator(`text="${tab}"`).first().click({ timeout: 3500 });
+        await page.waitForTimeout(600);
         const body: string = await page.evaluate(() => {
           const b = document.body.innerText.replace(/\r/g, "");
           const s = b.lastIndexOf("\nSpecifications\n");
           const e = b.indexOf("Recommended based on this vehicle");
           return s < 0 ? "" : b.slice(s, e > s ? e : s + 4000);
         });
-        // Keep only this tab's own section (from its own heading onward).
         const idx = body.indexOf(`\n${tab}\n`);
         specParts.push(idx >= 0 ? body.slice(idx) : body);
       } catch {
-        // Tab failed to open — skip it rather than fabricate its contents.
+        // Tab did not open — skip rather than fabricate its contents.
       }
     }
-
-    return { head, images, specSheet: specParts.join("\n\n") };
+    return { head, specSheet: specParts.join("\n\n"), images, alive: true };
+  } catch {
+    return null;
   } finally {
-    await browser.close();
+    await page.close();
   }
 }
 
-/** Dedupe che168's repeated photo sizes by their shared autohomecar hash, preferring the largest. */
-function dedupeImages(enImages: string[], cnImages: string[]): string[] {
+function enImages(page: import("playwright").Page): Promise<string[]> {
+  return page.evaluate(() =>
+    [...new Set(
+      [...document.querySelectorAll("img")]
+        .flatMap((el) => [el.src, el.getAttribute("data-src"), el.getAttribute("data-original")])
+        .filter((s): s is string => !!s && /autoimg\.cn/.test(s) && /1400x0_/.test(s))
+        .map((s) => s.split("?")[0]),
+    )],
+  );
+}
+
+/** Dedupe che168's repeated photo sizes by their shared autohomecar hash. */
+function dedupeImages(...groups: string[][]): string[] {
   const byHash = new Map<string, string>();
-  const add = (u: string) => {
-    const m = u.match(/autohomecar__([A-Za-z0-9_-]+)\./);
-    if (!m) return;
-    const big = u.replace(/\/\d+x\d+_\d+_q\d+_c\d+_/, "/1400x0_1_q87_").replace(/\.webp$/, "");
-    if (!byHash.has(m[1])) byHash.set(m[1], big);
-  };
-  enImages.forEach(add);
-  cnImages.forEach(add);
+  for (const group of groups) {
+    for (const u of group) {
+      const m = u.match(/autohomecar__([A-Za-z0-9_-]+)\./);
+      if (!m) continue;
+      const big = u
+        .replace(/\/\d+x\d+_\d+_q\d+_c\d+_/, "/1400x0_1_q87_")
+        .replace(/\.webp$/, "");
+      if (!byHash.has(m[1])) byHash.set(m[1], big);
+    }
+  }
   return [...byHash.values()];
 }
 
@@ -234,84 +190,77 @@ export async function scrapeChe168Listing(rawUrl: string): Promise<RawListing> {
   if (!/(^|\.)che168\.com$/.test(url.hostname)) {
     throw new Che168ImportError("Only che168.com listing links are supported.");
   }
-  const srcId = parseSrcId(url);
+  const srcId = parseSrcId(rawUrl);
+  if (!srcId) {
+    throw new Che168ImportError("Could not find a car id in that link.");
+  }
   const cnUrl = `${url.origin}${url.pathname}`;
 
-  const [cn, en] = await Promise.all([extractCn(cnUrl), extractEn(srcId)]);
+  const browser = await chromium.launch();
+  let cn: Awaited<ReturnType<typeof extractCn>>;
+  let en: Awaited<ReturnType<typeof extractEn>>;
+  try {
+    // The Chinese page is required; the English mirror is a bonus.
+    [cn, en] = await Promise.all([
+      extractCn(browser, cnUrl),
+      extractEn(browser, srcId).catch(() => null),
+    ]);
+  } finally {
+    await browser.close();
+  }
 
-  // Parse failures are the admin's problem to read, not a stack trace.
-  const carRmb = (() => {
-    try {
-      return parseCnPrice(cn.text);
-    } catch (e) {
-      throw new Che168ImportError(
-        e instanceof Che168ParseError ? e.message : "Could not read the asking price.",
-      );
-    }
-  })();
-  const mileageKm = parseCnMileage(cn.text) ?? (() => {
-    const m = en.head.match(/Mileage \(km\)\n(\d+)/);
-    if (!m) throw new Che168ImportError("Could not find the mileage on that listing.");
-    return parseInt(m[1], 10);
-  })();
-  const previousOwners = parseCnTransfers(cn.text);
-  const { features: highlightFeatures, unrecognised } = parseCnHighlights(cn.text);
+  // Deterministic reads from the Chinese page — the hard numbers.
+  let carRmb: number | undefined;
+  try {
+    carRmb = parseCnPrice(cn.text);
+  } catch {
+    carRmb = undefined; // let the AI try; reconcile throws if both fail
+  }
+  const enHead = en?.alive ? en.head : "";
+  const crumb = enHead ? parseBreadcrumbMakeModel(enHead) : null;
+  const det: DeterministicFacts = {
+    carRmb,
+    mileageKm: parseCnMileage(cn.text),
+    year: parseCnYear(cn.text),
+    previousOwners: parseCnTransfers(cn.text),
+    make: crumb ? canonicalMake(crumb.make) : undefined,
+    model: crumb?.model,
+    trim: crumb
+      ? splitModelName(field(enHead, "Model Name"), crumb.make).trim
+      : undefined,
+    colour: enHead ? field(enHead, "Exterior Color") || undefined : undefined,
+  };
 
-  const regDate = field(en.head, "1st Reg\\. Date");
-  const year = parseInt(regDate.slice(0, 4), 10) || new Date().getFullYear();
-  const fuel = mapFuel(field(en.head, "Fuel Type"));
-  const engine = field(en.head, "Engine \\(cc\\)");
-  const horsepower = parseInt(engine.match(/(\d+)\s*hp/i)?.[1] ?? "", 10) || undefined;
-  const cylinders = parseInt(engine.match(/L(\d)/)?.[1] ?? "", 10) || undefined;
-  const displacementL = engine.match(/([\d.]+)T?\b/)?.[1];
-  const isTurbo = /T\b/.test(engine.split(" ")[0] ?? "");
-  const engineCapacity = displacementL ? `${displacementL}L${isTurbo ? " Turbo" : ""}` : undefined;
-  const transmission = mapTransmission(field(en.head, "Trans\\."));
-  const drivetrain = mapDrivetrain(field(en.head, "Drive Train"));
-  const bodyType = mapBodyType(field(en.head, "Body Type"), field(en.head, "Class"));
-  const seats = parseInt(field(en.head, "Seats"), 10) || undefined;
-  const doors = parseInt(field(en.head, "Doors"), 10) || undefined;
-  const colour = field(en.head, "Exterior Color") || "Unspecified";
+  // DeepSeek reads the full page(s) and fills everything else.
+  const enText = en?.alive
+    ? [en.head, en.specSheet].filter(Boolean).join("\n\n")
+    : "";
+  const ai = await extractListing({
+    cnText: cn.text,
+    enText: enText || undefined,
+    known: {
+      carRmb: det.carRmb,
+      mileageKm: det.mileageKm,
+      year: det.year,
+      make: det.make,
+      model: det.model,
+    },
+  });
 
-  const { make, model, trim } = parseMakeModelTrim(en.head);
+  const reconciled = reconcileListing(det, ai);
 
-  const imageUrls = dedupeImages(en.images, cn.images);
+  const imageUrls = dedupeImages(en?.images ?? [], cn.images);
   if (!imageUrls.length) {
     throw new Che168ImportError("Could not find any photos on that listing.");
   }
 
-  const highlightContext = highlightFeatures.length
-    ? `Dealer highlight tags (confirmed fitted): ${highlightFeatures.join(", ")}`
-    : "";
-  const untranslatedContext = unrecognised.length
-    ? `Untranslated dealer tags (Chinese, confirmed fitted — translate only if clearly an equipment name, else skip): ${unrecognised.join(", ")}`
-    : "";
-  const specContext = [highlightContext, untranslatedContext, en.specSheet]
-    .filter(Boolean)
-    .join("\n\n");
-
   return {
+    ...reconciled,
     sourceUrl: rawUrl,
     srcId,
-    make,
-    model,
-    trim,
-    year,
-    mileageKm,
-    colour,
-    previousOwners,
-    carRmb,
-    bodyType,
-    transmission,
-    fuel,
-    drivetrain,
-    seats,
-    doors,
-    cylinders,
-    horsepower,
-    engineCapacity,
     imageUrls,
-    specContext,
-    unrecognisedHighlights: unrecognised,
+    enMirrorUsed: !!en?.alive,
   };
 }
+
+export { Che168ParseError };

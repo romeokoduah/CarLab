@@ -187,3 +187,24 @@ CREATE TABLE IF NOT EXISTS receipts (
   issued_at       timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_receipts_issued ON receipts(issued_at DESC);
+
+-- ── Vehicle registry ───────────────────────────────────────────────────────
+-- The growing list of makes/models the dealer actually stocks, so a make or
+-- model added once (by hand or by an import) becomes a reusable dropdown
+-- option next time. Merged with the built-in static catalogue in the admin
+-- form. Unique per make+model, case-insensitively.
+CREATE TABLE IF NOT EXISTS vehicle_registry (
+  id         text PRIMARY KEY,
+  make       text NOT NULL,
+  model      text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_vehicle_registry_makemodel
+  ON vehicle_registry(lower(make), lower(model));
+
+-- Seed from whatever is already in inventory, so the first load isn't empty.
+INSERT INTO vehicle_registry (id, make, model)
+SELECT 'veh-' || md5(lower(make) || '|' || lower(model)), make, model
+  FROM (SELECT DISTINCT make, model FROM cars) c
+ WHERE make <> '' AND model <> ''
+ON CONFLICT DO NOTHING;

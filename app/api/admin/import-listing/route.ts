@@ -4,7 +4,7 @@ import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { requireSuperAdmin } from "@/lib/auth-server";
 import { Che168ImportError, scrapeChe168Listing } from "@/lib/import/che168";
-import { DeepSeekImportError, extractListingCopy } from "@/lib/import/deepseek";
+import { DeepSeekImportError } from "@/lib/import/deepseek";
 import { compressToTarget } from "@/lib/images";
 import { dbGetSettings } from "@/lib/db/settings";
 import {
@@ -61,6 +61,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Paste a che168 listing link." }, { status: 400 });
   }
 
+  // Scraping now reads the page AND runs the DeepSeek extraction in one step
+  // (the Chinese page is authoritative; the English mirror is optional).
   let listing;
   try {
     listing = await scrapeChe168Listing(url);
@@ -68,31 +70,14 @@ export async function POST(req: Request) {
     if (e instanceof Che168ImportError) {
       return NextResponse.json({ error: e.message }, { status: 422 });
     }
-    console.error("che168 scrape failed:", e);
+    if (e instanceof DeepSeekImportError) {
+      return NextResponse.json({ error: e.message }, { status: 502 });
+    }
+    console.error("che168 import failed:", e);
     return NextResponse.json(
       { error: "Could not read that listing. It may have been taken down, or che168 changed its page layout." },
       { status: 502 },
     );
-  }
-
-  let copy;
-  try {
-    copy = await extractListingCopy({
-      make: listing.make,
-      model: listing.model,
-      trim: listing.trim,
-      year: listing.year,
-      mileageKm: listing.mileageKm,
-      colour: listing.colour,
-      previousOwners: listing.previousOwners,
-      specContext: listing.specContext,
-    });
-  } catch (e) {
-    if (e instanceof DeepSeekImportError) {
-      return NextResponse.json({ error: e.message }, { status: 502 });
-    }
-    console.error("DeepSeek extraction failed:", e);
-    return NextResponse.json({ error: "The AI write-up step failed. Try again." }, { status: 502 });
   }
 
   const downloaded = await Promise.all(
@@ -137,8 +122,8 @@ export async function POST(req: Request) {
       horsepower: listing.horsepower,
       engineCapacity: listing.engineCapacity,
       previousOwners: listing.previousOwners,
-      description: copy.description,
-      features: copy.features,
+      description: listing.description,
+      features: listing.features,
       images,
       priceGhs,
       costCarRmb: breakdown.carRmb,
@@ -153,7 +138,7 @@ export async function POST(req: Request) {
       sourceUrl: listing.sourceUrl,
       photosFound: listing.imageUrls.length,
       photosDownloaded: images.length,
-      unrecognisedHighlights: listing.unrecognisedHighlights,
+      enMirrorUsed: listing.enMirrorUsed,
     },
   });
 }
