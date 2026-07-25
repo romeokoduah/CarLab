@@ -32,6 +32,24 @@ const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-pro";
 // DOMException and the admin just saw the generic "could not read" message.
 const TIMEOUT_MS = Number(process.env.DEEPSEEK_TIMEOUT_MS) || 180000;
 
+/**
+ * ...and nearly all of that time is the thinking, which this job does not need.
+ *
+ * Reading a spec sheet is extraction, not deduction. Measured across four real
+ * listings (BYD Yuan UP, BYD Qin PLUS, BMW 2 Series): every hard field came
+ * back identical with reasoning off -- make, model, year, mileage, colour,
+ * body, fuel, transmission, drivetrain, seats, doors, cylinders, horsepower,
+ * engine and RMB price -- and the feature lists were as long or longer (44 vs
+ * 23 on one car). Only the trim WORDING drifted ("Leading Type" vs "Leading
+ * Edition"), and trim is not a stored column; it is folded into the
+ * description. The win is 60-79s -> 7-8s.
+ *
+ * Set DEEPSEEK_THINKING=1 to hand the reasoning back if a listing ever needs
+ * it. Note reasoning_effort:"low" is NOT a middle ground -- it measured SLOWER
+ * than full thinking (35s vs 28s).
+ */
+const THINKING_DISABLED = process.env.DEEPSEEK_THINKING !== "1";
+
 const SYSTEM_PROMPT = `You are a meticulous vehicle-data extractor for a Ghana-based car importer. You are given the scraped text of a used-car listing from the Chinese marketplace che168.com (a Chinese dealer page, and sometimes an English mirror). Return one structured record describing THIS specific vehicle.
 
 Extract EVERY field you can support from the text. Do not leave a field blank or "Unknown" when the text lets you determine it — read the Chinese if the English is missing. But never invent a value the text does not support; use null for a field the listing genuinely does not state.
@@ -112,6 +130,7 @@ ${input.enText ? `── ENGLISH MIRROR + CONFIG SHEET ──\n${input.enText.sl
         model: DEEPSEEK_MODEL,
         temperature: 0.1,
         response_format: { type: "json_object" },
+        ...(THINKING_DISABLED ? { thinking: { type: "disabled" } } : {}),
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userMessage },

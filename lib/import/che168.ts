@@ -49,6 +49,24 @@ export interface RawListing extends ReconciledListing {
 
 export class Che168ImportError extends Error {}
 
+/**
+ * Drop the bytes we never look at.
+ *
+ * Applied to the Chinese page only. The English mirror waits on `networkidle`
+ * and that stalled to a 45s timeout when its requests were being aborted, so
+ * it is left to load normally — a missing spec tab costs a feature list, which
+ * is worth more than the seconds. Stylesheets are kept for the same reason:
+ * the mirror renders its tabs client-side.
+ */
+async function blockHeavyResources(page: import("playwright").Page) {
+  await page.route("**/*", (route) => {
+    const kind = route.request().resourceType();
+    return kind === "image" || kind === "media" || kind === "font"
+      ? route.abort()
+      : route.continue();
+  });
+}
+
 async function extractCn(browser: Browser, url: string) {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1200 },
@@ -56,15 +74,23 @@ async function extractCn(browser: Browser, url: string) {
     locale: "zh-CN",
   });
   try {
+    // We only ever read text and img ATTRIBUTES off this page, so fetching the
+    // photos themselves (and fonts/video) just spends time. The attributes are
+    // in the DOM either way; the actual photos are downloaded later, in
+    // parallel, by the import route.
+    await blockHeavyResources(page);
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
-    await page.waitForTimeout(3500);
+    // Measured: price/mileage text and every photo URL are already present at
+    // domcontentloaded once the images are not competing for the connection.
+    // The old 3.5s + 1.5s of fixed sleeping was covering for that contention.
+    await page.waitForTimeout(900);
     await page.evaluate(async () => {
       for (let y = 0; y < document.body.scrollHeight; y += 600) {
         window.scrollTo(0, y);
         await new Promise((r) => setTimeout(r, 90));
       }
     });
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(500);
     const text: string = await page.evaluate(() =>
       document.body.innerText.replace(/\n{2,}/g, "\n"),
     );
