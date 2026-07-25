@@ -24,6 +24,14 @@ const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
 // unromanised brand ends up on the storefront. Override with DEEPSEEK_MODEL.
 const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-pro";
 
+// v4 is a REASONING model: it returns response headers in under a second and
+// then streams the body for as long as it thinks. Measured on a real 14k-char
+// listing: pro 64s of body, flash 20s. The old 60s cap therefore aborted
+// mid-body on pro -- and because that abort landed on the body read rather
+// than the fetch promise, it escaped the fetch().catch() as a bare
+// DOMException and the admin just saw the generic "could not read" message.
+const TIMEOUT_MS = Number(process.env.DEEPSEEK_TIMEOUT_MS) || 180000;
+
 const SYSTEM_PROMPT = `You are a meticulous vehicle-data extractor for a Ghana-based car importer. You are given the scraped text of a used-car listing from the Chinese marketplace che168.com (a Chinese dealer page, and sometimes an English mirror). Return one structured record describing THIS specific vehicle.
 
 Extract EVERY field you can support from the text. Do not leave a field blank or "Unknown" when the text lets you determine it — read the Chinese if the English is missing. But never invent a value the text does not support; use null for a field the listing genuinely does not state.
@@ -89,32 +97,49 @@ ${input.cnText.slice(0, 7000)}
 
 ${input.enText ? `── ENGLISH MIRROR + CONFIG SHEET ──\n${input.enText.slice(0, 7000)}` : "(English mirror unavailable — extract everything from the Chinese page above.)"}`;
 
-  const res = await fetch(DEEPSEEK_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: DEEPSEEK_MODEL,
-      temperature: 0.1,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userMessage },
-      ],
-    }),
-    signal: AbortSignal.timeout(60000),
-  }).catch((e) => {
-    throw new DeepSeekImportError(`Could not reach DeepSeek: ${e.message}`);
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new DeepSeekImportError(`DeepSeek returned ${res.status}: ${body.slice(0, 300)}`);
+  // The body read is inside the try on purpose: with a reasoning model that is
+  // where the wait actually happens, so that is where a timeout will fire.
+  let res: Response;
+  let raw: string;
+  try {
+    res = await fetch(DEEPSEEK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: DEEPSEEK_MODEL,
+        temperature: 0.1,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userMessage },
+        ],
+      }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    raw = await res.text();
+  } catch (e) {
+    const err = e as { name?: string; message?: string };
+    if (err.name === "TimeoutError" || err.name === "AbortError") {
+      throw new DeepSeekImportError(
+        `DeepSeek (${DEEPSEEK_MODEL}) did not answer within ${Math.round(TIMEOUT_MS / 1000)}s. Try again, or set DEEPSEEK_MODEL=deepseek-v4-flash for a faster read.`,
+      );
+    }
+    throw new DeepSeekImportError(`Could not reach DeepSeek: ${err.message}`);
   }
 
-  const data = await res.json();
+  if (!res.ok) {
+    throw new DeepSeekImportError(`DeepSeek returned ${res.status}: ${raw.slice(0, 300)}`);
+  }
+
+  let data: { choices?: Array<{ message?: { content?: unknown } }> };
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new DeepSeekImportError("DeepSeek returned a body that was not JSON.");
+  }
   const content = data?.choices?.[0]?.message?.content;
   if (typeof content !== "string") {
     throw new DeepSeekImportError("DeepSeek returned an unexpected response shape.");
