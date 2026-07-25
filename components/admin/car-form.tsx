@@ -120,7 +120,7 @@ const str = (n: number | undefined): string => (n == null ? "" : String(n));
 
 function initFrom(car: Car | undefined, rates: Rates): FormState {
   const body = car?.bodyType ?? "SUV";
-  const byBody = defaultsForBody(body);
+  const byBody = defaultsForBody(body, car?.fuel ?? "Petrol");
   return {
     make: car?.make ?? "",
     model: car?.model ?? "",
@@ -217,13 +217,32 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
 
   /** Margin and shipping follow the body class, so refill them on change. */
   const setBodyType = (bodyType: BodyType) => {
-    const d = defaultsForBody(bodyType);
-    setF((prev) => ({
-      ...prev,
-      bodyType,
-      costProfitRmb: String(d.profitRmb),
-      costShippingUsd: String(d.shippingUsd),
-    }));
+    setF((prev) => {
+      const d = defaultsForBody(bodyType, prev.fuel);
+      return {
+        ...prev,
+        bodyType,
+        costProfitRmb: String(d.profitRmb),
+        costShippingUsd: String(d.shippingUsd),
+      };
+    });
+  };
+
+  /**
+   * Shipping also follows the fuel — a hybrid or EV carries a battery
+   * surcharge — so switching fuel has to refill it too, or the breakdown would
+   * disagree with the body-type rate the admin can see right next to it.
+   */
+  const setFuel = (fuel: Fuel) => {
+    setF((prev) => {
+      const d = defaultsForBody(prev.bodyType, fuel);
+      return {
+        ...prev,
+        fuel,
+        costProfitRmb: String(d.profitRmb),
+        costShippingUsd: String(d.shippingUsd),
+      };
+    });
   };
 
   /**
@@ -247,7 +266,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
     );
 
   const resetCostDefaults = () => {
-    const d = defaultsForBody(f.bodyType);
+    const d = defaultsForBody(f.bodyType, f.fuel);
     setF((prev) => ({
       ...prev,
       costLogisticsRmb: String(LOGISTICS_RMB),
@@ -727,7 +746,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
             <EnumSelect
               value={f.fuel}
               options={FUELS}
-              onChange={(v) => set("fuel", v as Fuel)}
+              onChange={(v) => setFuel(v as Fuel)}
             />
           </Field>
           <Field label="Transmission">

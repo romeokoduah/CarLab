@@ -96,7 +96,10 @@ export async function POST(req: Request) {
   }
 
   const settings = await dbGetSettings();
-  const { profitRmb, shippingUsd } = defaultsForBody(listing.bodyType);
+  const { profitRmb, shippingUsd } = defaultsForBody(
+    listing.bodyType,
+    listing.fuel,
+  );
   const breakdown = {
     carRmb: listing.carRmb,
     logisticsRmb: LOGISTICS_RMB,

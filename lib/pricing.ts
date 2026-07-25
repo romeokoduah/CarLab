@@ -1,4 +1,4 @@
-import type { BodyType } from "@/lib/types";
+import type { BodyType, Fuel } from "@/lib/types";
 
 /**
  * Landed-cost pricing for imported stock.
@@ -22,11 +22,35 @@ const SEDAN_DEFAULTS: BodyDefaults = { profitRmb: 12000, shippingUsd: 1800 };
 const LARGE_DEFAULTS: BodyDefaults = { profitRmb: 16000, shippingUsd: 2300 };
 
 /**
- * Margin and shipping for a body type. Sedans are the small-vehicle rate;
- * everything else ships and earns at the SUV rate.
+ * Hybrids and EVs ship dearer than the same body in petrol or diesel: the
+ * traction battery is heavy and carriers surcharge it as dangerous goods.
+ * Margin is unaffected — this is a cost of carriage, not a pricing decision.
  */
-export function defaultsForBody(bodyType: BodyType): BodyDefaults {
-  return bodyType === "Sedan" ? SEDAN_DEFAULTS : LARGE_DEFAULTS;
+const ELECTRIFIED_SHIPPING_USD = { sedan: 2500, large: 3500 };
+
+const isElectrified = (fuel: Fuel | undefined): boolean =>
+  fuel === "Hybrid" || fuel === "Electric";
+
+/**
+ * Margin and shipping for a listing. Sedans are the small-vehicle rate;
+ * everything else ships and earns at the SUV rate.
+ *
+ * `fuel` is optional so a caller that genuinely has no fuel yet still gets the
+ * combustion defaults, which is what the form showed before EV rates existed.
+ */
+export function defaultsForBody(
+  bodyType: BodyType,
+  fuel?: Fuel,
+): BodyDefaults {
+  const isSedan = bodyType === "Sedan";
+  const base = isSedan ? SEDAN_DEFAULTS : LARGE_DEFAULTS;
+  if (!isElectrified(fuel)) return base;
+  return {
+    profitRmb: base.profitRmb,
+    shippingUsd: isSedan
+      ? ELECTRIFIED_SHIPPING_USD.sedan
+      : ELECTRIFIED_SHIPPING_USD.large,
+  };
 }
 
 export interface CostBreakdown {

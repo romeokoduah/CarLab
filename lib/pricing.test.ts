@@ -15,6 +15,14 @@ test("sedans use the small-vehicle margin and shipping", () => {
     profitRmb: 12000,
     shippingUsd: 1800,
   });
+  assert.deepEqual(defaultsForBody("Sedan", "Petrol"), {
+    profitRmb: 12000,
+    shippingUsd: 1800,
+  });
+  assert.deepEqual(defaultsForBody("Sedan", "Diesel"), {
+    profitRmb: 12000,
+    shippingUsd: 1800,
+  });
 });
 
 test("every non-sedan body uses the SUV margin and shipping", () => {
@@ -24,7 +32,58 @@ test("every non-sedan body uses the SUV margin and shipping", () => {
       { profitRmb: 16000, shippingUsd: 2300 },
       `${body} should use the SUV rate`,
     );
+    assert.deepEqual(
+      defaultsForBody(body, "Diesel"),
+      { profitRmb: 16000, shippingUsd: 2300 },
+      `${body} diesel should use the SUV rate`,
+    );
   }
+});
+
+test("hybrid and EV sedans ship at $2,500", () => {
+  for (const fuel of ["Hybrid", "Electric"] as const) {
+    assert.deepEqual(
+      defaultsForBody("Sedan", fuel),
+      { profitRmb: 12000, shippingUsd: 2500 },
+      `${fuel} sedan`,
+    );
+  }
+});
+
+test("hybrid and EV SUVs — and every other large body — ship at $3,500", () => {
+  for (const body of ["SUV", "Hatchback", "Pickup", "Coupe", "Van"] as const) {
+    for (const fuel of ["Hybrid", "Electric"] as const) {
+      assert.deepEqual(
+        defaultsForBody(body, fuel),
+        { profitRmb: 16000, shippingUsd: 3500 },
+        `${fuel} ${body}`,
+      );
+    }
+  }
+});
+
+test("electrification changes shipping only, never the margin", () => {
+  for (const body of ["Sedan", "SUV", "Van"] as const) {
+    assert.equal(
+      defaultsForBody(body, "Electric").profitRmb,
+      defaultsForBody(body, "Petrol").profitRmb,
+      `${body} margin must not move with fuel`,
+    );
+  }
+});
+
+test("an electrified sedan is priced GHS 10,500 above its petrol twin", () => {
+  // The whole change is $700 of extra shipping at 15 GHS/USD.
+  const base = { carRmb: 80000, logisticsRmb: LOGISTICS_RMB, ghsPerRmb: 2, ghsPerUsd: 15 };
+  const petrol = computeFinalPriceGhs({
+    ...base,
+    ...defaultsForBody("Sedan", "Petrol"),
+  });
+  const electric = computeFinalPriceGhs({
+    ...base,
+    ...defaultsForBody("Sedan", "Electric"),
+  });
+  assert.equal(electric! - petrol!, 700 * 15);
 });
 
 test("logistics is a flat ¥3,500 on every vehicle", () => {
