@@ -19,6 +19,11 @@ import type { ExtractedListing } from "@/lib/import/che168-parse";
 
 const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
 
+// The API only accepts "deepseek-v4-pro" or "deepseek-v4-flash". Pro is the
+// default: this is a long bilingual extraction where a wrong body type or an
+// unromanised brand ends up on the storefront. Override with DEEPSEEK_MODEL.
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-pro";
+
 const SYSTEM_PROMPT = `You are a meticulous vehicle-data extractor for a Ghana-based car importer. You are given the scraped text of a used-car listing from the Chinese marketplace che168.com (a Chinese dealer page, and sometimes an English mirror). Return one structured record describing THIS specific vehicle.
 
 Extract EVERY field you can support from the text. Do not leave a field blank or "Unknown" when the text lets you determine it — read the Chinese if the English is missing. But never invent a value the text does not support; use null for a field the listing genuinely does not state.
@@ -91,7 +96,7 @@ ${input.enText ? `── ENGLISH MIRROR + CONFIG SHEET ──\n${input.enText.sl
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "deepseek-chat",
+      model: DEEPSEEK_MODEL,
       temperature: 0.1,
       response_format: { type: "json_object" },
       messages: [
