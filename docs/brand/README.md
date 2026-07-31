@@ -15,12 +15,22 @@ traced from it and a retrace needs the original.
 
 ## Colour
 
-The brand blue is **`#1325A5`** (`hsl(233 79% 36%)`), measured off the master
-artwork rather than guessed.
+The brand blue is **`#1324A4`** (`hsl(233 79% 36%)`), measured off the master
+artwork rather than guessed. It is the site's accent colour, not just the
+logo's — see the palette note at the top of `app/globals.css`.
 
-On the site the logo is painted with `--logo-ink` (see `app/globals.css`), which
-is brand blue on the light theme and the site's gold on the dark one — the blue
-is close to unreadable against the near-black background the site defaults to.
+The logo is painted with `text-brand`, so it follows the theme:
+
+| | `--brand` | on |
+| --- | --- | --- |
+| Light | `233 79% 36%` — `#1324A4`, the true logo blue | 11.0:1 |
+| Dark | `230 82% 68%` — `#6A81F0`, lifted | 5.7:1 |
+
+The dark theme cannot use the real blue: against the near-black background it
+manages about 1.4:1, which is effectively invisible. Anything sitting *on* a
+filled `bg-brand` must use `text-brand-foreground`, which flips with the theme
+(white on light, near-black on dark) — a hardcoded colour will fail in one of
+the two.
 
 ## Retracing
 

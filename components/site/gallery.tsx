@@ -109,7 +109,7 @@ export function Gallery({ images, title, videoUrl }: GalleryProps) {
             onClick={() => setShowVideo(true)}
             className={cn(
               "relative grid aspect-[4/3] h-14 w-20 shrink-0 place-items-center overflow-hidden rounded-xl border-2 bg-black/60 text-white transition sm:h-16 sm:w-24",
-              showVideo ? "border-gold" : "border-transparent",
+              showVideo ? "border-brand" : "border-transparent",
             )}
             aria-label="Play video walkaround"
           >
@@ -128,7 +128,7 @@ export function Gallery({ images, title, videoUrl }: GalleryProps) {
             className={cn(
               "relative aspect-[4/3] h-14 w-20 shrink-0 overflow-hidden rounded-xl border-2 transition sm:h-16 sm:w-24",
               i === active && !showVideo
-                ? "border-gold"
+                ? "border-brand"
                 : "border-transparent opacity-70 hover:opacity-100",
             )}
           >
@@ -196,7 +196,7 @@ export function Gallery({ images, title, videoUrl }: GalleryProps) {
                   aria-label={`View photo ${i + 1}`}
                   className={cn(
                     "relative aspect-[4/3] h-14 w-20 shrink-0 overflow-hidden rounded-lg border-2 transition",
-                    i === active ? "border-gold" : "border-transparent opacity-60",
+                    i === active ? "border-brand" : "border-transparent opacity-60",
                   )}
                 >
                   <Image src={img.url} alt="" fill sizes="80px" className="object-cover" />

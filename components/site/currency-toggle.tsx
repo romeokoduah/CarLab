@@ -28,7 +28,7 @@ export function CurrencyToggle({ className }: { className?: string }) {
           className={cn(
             "rounded-full px-2.5 py-1 transition-colors",
             active === c
-              ? "bg-gold text-black"
+              ? "bg-brand text-brand-foreground"
               : "text-muted-foreground hover:text-foreground",
           )}
         >

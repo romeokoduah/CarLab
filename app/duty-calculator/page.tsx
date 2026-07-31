@@ -20,7 +20,7 @@ export default async function DutyCalculatorPage() {
   return (
     <div className="container py-14 sm:py-20">
       <header className="mb-10 max-w-2xl">
-        <p className="text-sm font-medium text-gold">Tools</p>
+        <p className="text-sm font-medium text-brand">Tools</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
           Import duty calculator
         </h1>

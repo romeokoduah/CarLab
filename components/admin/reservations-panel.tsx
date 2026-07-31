@@ -129,7 +129,7 @@ export function ReservationsPanel() {
           Hold a car for a customer using their reference. Expired holds are
           flagged — the car is never released without you.
         </p>
-        <Button variant="gold" onClick={() => setOpen(true)}>
+        <Button variant="brand" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4" /> Reserve a car
         </Button>
       </div>
@@ -153,7 +153,7 @@ export function ReservationsPanel() {
               }`}
             >
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <span className="rounded-md border border-gold/40 bg-gold/5 px-2.5 py-1 font-mono text-sm font-semibold tracking-[0.1em] text-gold">
+                <span className="rounded-md border border-brand/40 bg-brand/5 px-2.5 py-1 font-mono text-sm font-semibold tracking-[0.1em] text-brand">
                   {r.reference}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -180,7 +180,7 @@ export function ReservationsPanel() {
                     Release
                   </Button>
                   <Button
-                    variant="gold"
+                    variant="brand"
                     size="sm"
                     onClick={() => setStatus(r.id, "completed")}
                   >
@@ -281,7 +281,7 @@ export function ReservationsPanel() {
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" variant="gold" className="w-full" disabled={busy}>
+            <Button type="submit" variant="brand" className="w-full" disabled={busy}>
               {busy ? "Reserving…" : "Reserve car"}
             </Button>
           </form>

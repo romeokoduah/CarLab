@@ -124,7 +124,7 @@ export function Combobox({
               )}
             >
               {o}
-              {o.toLowerCase() === q && <Check className="h-4 w-4 text-gold" />}
+              {o.toLowerCase() === q && <Check className="h-4 w-4 text-brand" />}
             </button>
           ))}
         </div>

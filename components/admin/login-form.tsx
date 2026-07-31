@@ -32,8 +32,8 @@ export function LoginForm() {
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo className="h-12" />
-          <div className="mt-6 grid h-12 w-12 place-items-center rounded-2xl border border-gold/30 bg-gold/10">
-            <Lock className="h-5 w-5 text-gold" />
+          <div className="mt-6 grid h-12 w-12 place-items-center rounded-2xl border border-brand/30 bg-brand/10">
+            <Lock className="h-5 w-5 text-brand" />
           </div>
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">
             Admin sign in
@@ -74,7 +74,7 @@ export function LoginForm() {
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" variant="gold" className="w-full">
+          <Button type="submit" variant="brand" className="w-full">
             <LogIn className="h-4 w-4" /> Sign in
           </Button>
         </form>

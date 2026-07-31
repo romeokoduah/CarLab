@@ -44,7 +44,7 @@ export function FavouriteButton({ carId, carTitle, className, size = "md" }: Pro
         className={cn(
           "transition-colors",
           size === "md" ? "h-[1.05rem] w-[1.05rem]" : "h-4 w-4",
-          active ? "fill-gold text-gold" : "text-foreground",
+          active ? "fill-brand text-brand" : "text-foreground",
         )}
       />
     </button>

@@ -51,9 +51,12 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        gold: {
-          DEFAULT: "hsl(var(--gold))",
-          soft: "hsl(var(--gold-soft))",
+        brand: {
+          DEFAULT: "hsl(var(--brand))",
+          // What text/icons sit on a filled bg-brand. Flips between themes —
+          // see the note in globals.css.
+          foreground: "hsl(var(--brand-foreground))",
+          soft: "hsl(var(--brand-soft))",
         },
       },
       borderRadius: {
@@ -96,8 +99,8 @@ const config: Config = {
           "100%": { transform: "translateZ(0) rotate(360deg)" },
         },
         "pulse-soft": {
-          "0%, 100%": { boxShadow: "0 0 0 0 hsl(var(--gold) / 0.5)" },
-          "50%": { boxShadow: "0 0 0 8px hsl(var(--gold) / 0)" },
+          "0%, 100%": { boxShadow: "0 0 0 0 hsl(var(--brand) / 0.5)" },
+          "50%": { boxShadow: "0 0 0 8px hsl(var(--brand) / 0)" },
         },
         grid: {
           "0%": { transform: "translateY(-50%)" },

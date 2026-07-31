@@ -44,7 +44,7 @@ export default function FavouritesPage() {
             Tap the heart on any car to save it here for later. Your list stays
             on this device.
           </p>
-          <Button asChild variant="gold" className="mt-6">
+          <Button asChild variant="brand" className="mt-6">
             <Link href="/inventory">
               Browse inventory <ArrowRight className="h-4 w-4" />
             </Link>

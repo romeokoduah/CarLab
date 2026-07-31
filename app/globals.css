@@ -2,83 +2,94 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Palette ────────────────────────────────────────────────────────────────
+   The accent is the logo's blue. The neutrals are cooled to match it — they
+   used to carry a warm hue-40 cast chosen to sit under gold, which reads muddy
+   against blue.
+
+   --brand is the accent as it appears ON the page background, so it flips
+   direction between themes: a deep blue on the light theme, a lighter blue on
+   the near-black dark one. --brand-foreground is whatever text sits on top of
+   a filled --brand surface, and therefore flips with it. Never hardcode a text
+   colour on a brand fill; use --brand-foreground or it will fail in one theme.
+   Every pairing below is at or above WCAG AA (4.5:1).
+   ────────────────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
     /* Light theme */
-    --background: 40 12% 97%;
-    --foreground: 240 6% 8%;
+    --background: 225 20% 98%;
+    --foreground: 228 12% 8%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 6% 8%;
+    --card-foreground: 228 12% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 6% 8%;
+    --popover-foreground: 228 12% 8%;
 
-    --primary: 240 6% 10%;
-    --primary-foreground: 40 20% 98%;
+    --primary: 228 12% 10%;
+    --primary-foreground: 225 20% 98%;
 
-    --secondary: 40 8% 92%;
-    --secondary-foreground: 240 6% 10%;
+    --secondary: 225 14% 93%;
+    --secondary-foreground: 228 12% 10%;
 
-    --muted: 40 8% 92%;
-    --muted-foreground: 240 4% 42%;
+    --muted: 225 14% 93%;
+    --muted-foreground: 225 9% 42%;
 
-    --accent: 40 9% 90%;
-    --accent-foreground: 240 6% 10%;
+    --accent: 225 14% 91%;
+    --accent-foreground: 228 12% 10%;
 
     --destructive: 0 72% 46%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 6% 88%;
-    --input: 240 6% 88%;
-    --ring: 41 44% 48%;
+    --border: 225 13% 88%;
+    --input: 225 13% 88%;
+    --ring: 233 79% 45%;
 
-    --gold: 41 46% 46%;
-    --gold-soft: 41 52% 62%;
-
-    /* The logo's own brand blue, #1325A5. */
-    --logo-ink: 233 79% 36%;
+    /* #1324A4 — the logo's own blue, measured off the master artwork.
+       11.0:1 as text on the background, 11.6:1 under white. */
+    --brand: 233 79% 36%;
+    --brand-foreground: 0 0% 100%;
+    --brand-soft: 233 70% 46%;
 
     --radius: 1rem;
   }
 
   .dark {
     /* Deep near-black showroom theme */
-    --background: 240 6% 4%;
-    --foreground: 40 18% 94%;
+    --background: 230 10% 4%;
+    --foreground: 225 16% 94%;
 
-    --card: 240 6% 7%;
-    --card-foreground: 40 18% 94%;
+    --card: 230 9% 7%;
+    --card-foreground: 225 16% 94%;
 
-    --popover: 240 7% 6%;
-    --popover-foreground: 40 18% 94%;
+    --popover: 230 10% 6%;
+    --popover-foreground: 225 16% 94%;
 
-    --primary: 40 20% 96%;
-    --primary-foreground: 240 8% 6%;
+    --primary: 225 20% 96%;
+    --primary-foreground: 230 10% 6%;
 
-    --secondary: 240 5% 12%;
-    --secondary-foreground: 40 18% 94%;
+    --secondary: 228 8% 12%;
+    --secondary-foreground: 225 16% 94%;
 
-    --muted: 240 5% 12%;
-    --muted-foreground: 240 5% 60%;
+    --muted: 228 8% 12%;
+    --muted-foreground: 225 8% 62%;
 
-    --accent: 240 5% 14%;
-    --accent-foreground: 40 18% 94%;
+    --accent: 228 8% 14%;
+    --accent-foreground: 225 16% 94%;
 
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 5% 15%;
-    --input: 240 5% 16%;
-    --ring: 41 52% 58%;
+    --border: 228 8% 15%;
+    --input: 228 8% 16%;
+    --ring: 230 82% 68%;
 
-    --gold: 41 58% 60%;
-    --gold-soft: 41 62% 70%;
-
-    /* Brand blue is unreadable on near-black, so the logo wears the site's
-       gold here instead. The blue is kept for the light theme and for the
-       standalone asset in /public/logo.svg. */
-    --logo-ink: 41 58% 60%;
+    /* #6A81F0 — the logo blue lifted to read on near-black: 5.7:1 as text on
+       the background, 5.5:1 under the near-black foreground. The true #1324A4
+       manages only ~1.4:1 here, which is why it is not used on this theme. */
+    --brand: 230 82% 68%;
+    --brand-foreground: 230 10% 6%;
+    --brand-soft: 230 85% 76%;
   }
 }
 
@@ -95,7 +106,7 @@
     text-rendering: optimizeLegibility;
   }
   ::selection {
-    background: hsl(var(--gold) / 0.25);
+    background: hsl(var(--brand) / 0.25);
   }
 }
 
@@ -103,17 +114,11 @@
   .text-balance {
     text-wrap: balance;
   }
-  .text-gold {
-    color: hsl(var(--gold));
-  }
-  .text-logo-ink {
-    color: hsl(var(--logo-ink));
-  }
   /* subtle luxury grain / vignette for hero sections */
   .showroom-vignette {
     background:
       radial-gradient(120% 120% at 50% 0%, transparent 55%, hsl(var(--background)) 100%),
-      radial-gradient(80% 60% at 50% 0%, hsl(var(--gold) / 0.06) 0%, transparent 60%);
+      radial-gradient(80% 60% at 50% 0%, hsl(var(--brand) / 0.06) 0%, transparent 60%);
   }
   .hairline {
     box-shadow: inset 0 0 0 1px hsl(var(--border));

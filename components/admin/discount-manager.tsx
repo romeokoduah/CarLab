@@ -127,7 +127,7 @@ export function DiscountManager() {
             Percentage or fixed-amount codes with limits and restrictions.
           </p>
         </div>
-        <Button variant="gold" onClick={openAdd}>
+        <Button variant="brand" onClick={openAdd}>
           <Plus className="h-4 w-4" /> New code
         </Button>
       </div>
@@ -320,7 +320,7 @@ export function DiscountManager() {
               <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="gold">
+              <Button type="submit" variant="brand">
                 {editingId ? "Save" : "Create"}
               </Button>
             </DialogFooter>

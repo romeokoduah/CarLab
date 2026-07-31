@@ -133,7 +133,7 @@ export function AnalyticsPanel() {
                     <td className="px-3 py-3 text-right tabular-nums">
                       {c.enquiries}
                     </td>
-                    <td className="px-5 py-3 text-right font-semibold tabular-nums text-gold">
+                    <td className="px-5 py-3 text-right font-semibold tabular-nums text-brand">
                       {c.people}
                     </td>
                   </tr>

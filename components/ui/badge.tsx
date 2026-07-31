@@ -8,15 +8,19 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "border-transparent bg-secondary text-secondary-foreground",
-        gold: "border-gold/30 bg-gold/10 text-gold",
+        brand: "border-brand/30 bg-brand/10 text-brand",
         outline: "text-foreground border-border",
+        // These carry a car's status to a buyer, so they have to be readable.
+        // The light-theme shades were a step too pale over their own /15 tint
+        // (Available measured 2.4:1) and the dark-theme red too dark; the hue
+        // is unchanged, only the step.
         success:
-          "border-transparent bg-emerald-500/15 text-emerald-500 dark:text-emerald-400",
+          "border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
         warning:
-          "border-transparent bg-amber-500/15 text-amber-600 dark:text-amber-400",
+          "border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400",
         muted: "border-transparent bg-muted text-muted-foreground",
         destructive:
-          "border-transparent bg-destructive/15 text-destructive",
+          "border-transparent bg-destructive/15 text-destructive dark:text-red-400",
       },
     },
     defaultVariants: { variant: "default" },

@@ -390,7 +390,7 @@ export function ReceiptsPanel() {
               </Field>
               <div className="sm:col-span-2 text-sm">
                 <span className="text-muted-foreground">Balance: </span>
-                <span className="font-semibold text-gold">
+                <span className="font-semibold text-brand">
                   {cedis(preview.balanceGhs)}
                 </span>
                 {preview.fullySettled && (

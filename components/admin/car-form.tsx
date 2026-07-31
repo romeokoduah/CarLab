@@ -483,7 +483,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
         <SectionTitle>
           Make &amp; model
           {imported && (
-            <span className="ml-2 text-xs font-normal text-gold">
+            <span className="ml-2 text-xs font-normal text-brand">
               auto-filled — check both before saving
             </span>
           )}
@@ -595,7 +595,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
             <div className="text-sm">
               <span className="text-muted-foreground">Final price: </span>
-              <span className="font-semibold text-gold">
+              <span className="font-semibold text-brand">
                 {computedPrice != null
                   ? formatPrice(computedPrice, "GHS", settings.ghsPerUsd)
                   : "—"}
@@ -923,7 +923,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
               {customFeatures.map((ft) => (
                 <span
                   key={ft}
-                  className="inline-flex items-center gap-1 rounded-full border border-gold/30 bg-gold/10 py-1 pl-3 pr-1.5 text-xs"
+                  className="inline-flex items-center gap-1 rounded-full border border-brand/30 bg-brand/10 py-1 pl-3 pr-1.5 text-xs"
                 >
                   {ft}
                   <button
@@ -954,7 +954,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
         <Button type="button" variant="ghost" onClick={onDone}>
           Cancel
         </Button>
-        <Button type="submit" variant="gold">
+        <Button type="submit" variant="brand">
           {car ? "Save changes" : "Add listing"}
         </Button>
       </div>

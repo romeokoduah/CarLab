@@ -18,8 +18,8 @@ export function BorderBeam({
   duration = 15,
   anchor = 90,
   borderWidth = 1.5,
-  colorFrom = "hsl(var(--gold))",
-  colorTo = "hsl(var(--gold-soft))",
+  colorFrom = "hsl(var(--brand))",
+  colorTo = "hsl(var(--brand-soft))",
   delay = 0,
 }: BorderBeamProps) {
   return (

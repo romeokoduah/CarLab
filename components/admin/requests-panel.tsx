@@ -151,7 +151,7 @@ export function RequestsPanel() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-base font-semibold">{wanted(r)}</h3>
-                    <Badge variant={r.status === "new" ? "gold" : "muted"}>
+                    <Badge variant={r.status === "new" ? "brand" : "muted"}>
                       {STATUS_LABEL[r.status]}
                     </Badge>
                   </div>

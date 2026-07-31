@@ -117,50 +117,50 @@ export default function AdminPage() {
           <TabsList className="mb-6 h-auto flex-wrap justify-start gap-1 bg-transparent p-0">
             <TabsTrigger
               value="inventory"
-              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+              className="gap-1.5 rounded-full border border-border data-[state=active]:border-brand/40 data-[state=active]:bg-brand/10 data-[state=active]:text-foreground"
             >
               <Car className="h-4 w-4" /> Inventory
             </TabsTrigger>
             <TabsTrigger
               value="discounts"
-              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+              className="gap-1.5 rounded-full border border-border data-[state=active]:border-brand/40 data-[state=active]:bg-brand/10 data-[state=active]:text-foreground"
             >
               <Tag className="h-4 w-4" /> Discounts
             </TabsTrigger>
             <TabsTrigger
               value="customers"
-              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+              className="gap-1.5 rounded-full border border-border data-[state=active]:border-brand/40 data-[state=active]:bg-brand/10 data-[state=active]:text-foreground"
             >
               <Users className="h-4 w-4" /> Customers
             </TabsTrigger>
             <TabsTrigger
               value="requests"
-              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+              className="gap-1.5 rounded-full border border-border data-[state=active]:border-brand/40 data-[state=active]:bg-brand/10 data-[state=active]:text-foreground"
             >
               <Inbox className="h-4 w-4" /> Requests
             </TabsTrigger>
             <TabsTrigger
               value="receipts"
-              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+              className="gap-1.5 rounded-full border border-border data-[state=active]:border-brand/40 data-[state=active]:bg-brand/10 data-[state=active]:text-foreground"
             >
               <ReceiptText className="h-4 w-4" /> Receipts
             </TabsTrigger>
             <TabsTrigger
               value="reservations"
-              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+              className="gap-1.5 rounded-full border border-border data-[state=active]:border-brand/40 data-[state=active]:bg-brand/10 data-[state=active]:text-foreground"
             >
               <BookmarkCheck className="h-4 w-4" /> Reservations
             </TabsTrigger>
             <TabsTrigger
               value="analytics"
-              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+              className="gap-1.5 rounded-full border border-border data-[state=active]:border-brand/40 data-[state=active]:bg-brand/10 data-[state=active]:text-foreground"
             >
               <BarChart3 className="h-4 w-4" /> Analytics
             </TabsTrigger>
             {isSuper && (
               <TabsTrigger
                 value="duty"
-                className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+                className="gap-1.5 rounded-full border border-border data-[state=active]:border-brand/40 data-[state=active]:bg-brand/10 data-[state=active]:text-foreground"
               >
                 <Calculator className="h-4 w-4" /> Duty rates
               </TabsTrigger>
@@ -168,14 +168,14 @@ export default function AdminPage() {
             {isSuper && (
               <TabsTrigger
                 value="admins"
-                className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+                className="gap-1.5 rounded-full border border-border data-[state=active]:border-brand/40 data-[state=active]:bg-brand/10 data-[state=active]:text-foreground"
               >
                 <ShieldCheck className="h-4 w-4" /> Admins
               </TabsTrigger>
             )}
             <TabsTrigger
               value="settings"
-              className="gap-1.5 rounded-full border border-border data-[state=active]:border-gold/40 data-[state=active]:bg-gold/10 data-[state=active]:text-foreground"
+              className="gap-1.5 rounded-full border border-border data-[state=active]:border-brand/40 data-[state=active]:bg-brand/10 data-[state=active]:text-foreground"
             >
               <SettingsIcon className="h-4 w-4" /> Settings
             </TabsTrigger>

@@ -22,7 +22,7 @@ export function HowItWorks() {
   return (
     <section className="container py-20">
       <div className="mx-auto max-w-2xl text-center">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-gold">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-brand">
           How importing works
         </p>
         <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -39,7 +39,7 @@ export function HowItWorks() {
             <span className="absolute right-6 top-6 text-5xl font-semibold tabular-nums text-muted/40">
               0{i + 1}
             </span>
-            <span className="grid h-12 w-12 place-items-center rounded-lg border border-gold/30 bg-gold/10 text-gold">
+            <span className="grid h-12 w-12 place-items-center rounded-lg border border-brand/30 bg-brand/10 text-brand">
               <s.icon className="h-6 w-6" />
             </span>
             <h3 className="mt-5 text-lg font-semibold">{s.title}</h3>

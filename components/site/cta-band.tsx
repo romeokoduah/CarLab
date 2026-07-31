@@ -28,7 +28,7 @@ export function CtaBand() {
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-12 items-center gap-2.5 rounded-lg bg-gold px-7 text-[15px] font-semibold text-black transition-colors hover:bg-gold/90"
+            className="inline-flex h-12 items-center gap-2.5 rounded-lg bg-brand px-7 text-[15px] font-semibold text-brand-foreground transition-colors hover:bg-brand/90"
           >
             <WhatsAppIcon className="h-5 w-5" />
             Message us on WhatsApp

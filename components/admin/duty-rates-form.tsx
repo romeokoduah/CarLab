@@ -202,7 +202,7 @@ export function DutyRatesForm() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button variant="gold" onClick={save} disabled={saving}>
+        <Button variant="brand" onClick={save} disabled={saving}>
           <Save className="h-4 w-4" /> {saving ? "Saving…" : "Save rates"}
         </Button>
         <Button

@@ -14,8 +14,8 @@ export function RetroGrid({
   angle = 65,
   cellSize = 62,
   opacity = 0.35,
-  lightLineColor = "hsl(var(--gold) / 0.4)",
-  darkLineColor = "hsl(var(--gold) / 0.35)",
+  lightLineColor = "hsl(var(--brand) / 0.4)",
+  darkLineColor = "hsl(var(--brand) / 0.35)",
   ...props
 }: RetroGridProps) {
   const gridStyles = {

@@ -141,7 +141,7 @@ export function LeadsPanel() {
                 className="rounded-2xl border border-border bg-card"
               >
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-3 p-4">
-                  <span className="rounded-md border border-gold/40 bg-gold/5 px-2.5 py-1 font-mono text-sm font-semibold tracking-[0.1em] text-gold">
+                  <span className="rounded-md border border-brand/40 bg-brand/5 px-2.5 py-1 font-mono text-sm font-semibold tracking-[0.1em] text-brand">
                     {lead.reference}
                   </span>
                   <div className="min-w-0 flex-1">

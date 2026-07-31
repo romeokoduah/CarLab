@@ -106,10 +106,10 @@ export function ImageManager({ images, onChange }: Props) {
           e.preventDefault();
           handleFiles(e.dataTransfer.files);
         }}
-        className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-secondary/30 py-8 text-center transition-colors hover:border-gold/50"
+        className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-secondary/30 py-8 text-center transition-colors hover:border-brand/50"
       >
         {uploading ? (
-          <Loader2 className="h-6 w-6 animate-spin text-gold" />
+          <Loader2 className="h-6 w-6 animate-spin text-brand" />
         ) : (
           <UploadCloud className="h-6 w-6 text-muted-foreground" />
         )}
@@ -169,7 +169,7 @@ export function ImageManager({ images, onChange }: Props) {
               className={cn(
                 "group relative aspect-[4/3] cursor-grab overflow-hidden rounded-xl border-2 bg-secondary active:cursor-grabbing",
                 overIndex === i && dragIndex !== null
-                  ? "border-gold"
+                  ? "border-brand"
                   : "border-border",
                 dragIndex === i && "opacity-50",
               )}
@@ -184,7 +184,7 @@ export function ImageManager({ images, onChange }: Props) {
               />
               {i === 0 && (
                 <Badge
-                  variant="gold"
+                  variant="brand"
                   className="absolute left-1.5 top-1.5 text-[10px]"
                 >
                   Cover

@@ -9,8 +9,9 @@ export const LOGO_VIEW_BOX = "0 0 1000 217";
  * The bare artwork, for places that are already inside a link or a heading.
  * Size it with a height class; the width follows from the aspect ratio.
  *
- * Colour comes from `text-logo-ink` (brand blue on light, gold on dark) via
- * the `currentColor` fill on the sprite.
+ * Colour comes from `text-brand` via the `currentColor` fill on the sprite —
+ * the logo and the site's accent are the same blue by definition now, so there
+ * is no separate logo token to keep in step.
  */
 export function LogoMark({ className }: { className?: string }) {
   return (
@@ -20,7 +21,7 @@ export function LogoMark({ className }: { className?: string }) {
       aria-label={SITE_CONFIG.dealerName}
       // shrink-0: the width comes from the aspect ratio, so as a flex child it
       // would otherwise be squeezed toward zero by the nav beside it.
-      className={cn("w-auto shrink-0 text-logo-ink", className)}
+      className={cn("w-auto shrink-0 text-brand", className)}
     >
       <use href="#em-logo" />
     </svg>

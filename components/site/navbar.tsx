@@ -76,7 +76,7 @@ export function SiteNavbar() {
               >
                 {l.label}
                 {l.href === "/favourites" && mounted && favCount > 0 && (
-                  <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-semibold text-black">
+                  <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold text-brand-foreground">
                     {favCount}
                   </span>
                 )}
@@ -97,7 +97,7 @@ export function SiteNavbar() {
             <Link href="/favourites">
               <Heart className="h-[1.15rem] w-[1.15rem]" />
               {mounted && favCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-semibold text-black">
+                <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold text-brand-foreground">
                   {favCount}
                 </span>
               )}
@@ -132,7 +132,7 @@ export function SiteNavbar() {
                     >
                       {l.label}
                       {l.href === "/favourites" && mounted && favCount > 0 && (
-                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1.5 text-xs font-semibold text-black">
+                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-xs font-semibold text-brand-foreground">
                           {favCount}
                         </span>
                       )}

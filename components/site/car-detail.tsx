@@ -257,7 +257,7 @@ export function CarDetail({
                   key={s.label}
                   className="min-w-0 rounded-xl border border-border bg-card p-3 sm:p-3.5"
                 >
-                  <s.icon className="h-4 w-4 text-gold" />
+                  <s.icon className="h-4 w-4 text-brand" />
                   <div className="mt-2 text-xs text-muted-foreground">
                     {s.label}
                   </div>
@@ -279,7 +279,7 @@ export function CarDetail({
                     key={f}
                     className="flex items-start gap-2 text-sm text-muted-foreground"
                   >
-                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-gold/10 text-gold">
+                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand/10 text-brand">
                       <Check className="h-3 w-3" />
                     </span>
                     <span className="min-w-0 break-words">{f}</span>

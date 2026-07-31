@@ -192,7 +192,7 @@ export function DutyCalculator({ config, defaultRate }: Props) {
 
             <Button
               type="button"
-              variant="gold"
+              variant="brand"
               className="h-11 w-full"
               onClick={onCalculate}
             >
@@ -206,7 +206,7 @@ export function DutyCalculator({ config, defaultRate }: Props) {
       <div className="lg:col-span-3">
         {!calc ? (
           <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/40 p-8 text-center">
-            <span className="grid h-12 w-12 place-items-center rounded-full border border-gold/30 bg-gold/10 text-gold">
+            <span className="grid h-12 w-12 place-items-center rounded-full border border-brand/30 bg-brand/10 text-brand">
               <Calculator className="h-5 w-5" />
             </span>
             <p className="mt-4 font-medium">Your estimate appears here</p>
@@ -279,11 +279,11 @@ function DutyBreakdown({ calc }: { calc: Calculated }) {
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-b border-border bg-gold/5">
+              <tr className="border-b border-border bg-brand/5">
                 <td className="px-6 py-4 font-semibold" colSpan={3}>
                   Total duties &amp; levies
                 </td>
-                <td className="px-6 py-4 text-right text-base font-semibold tabular-nums text-gold">
+                <td className="px-6 py-4 text-right text-base font-semibold tabular-nums text-brand">
                   {ghs(result.total)}
                 </td>
               </tr>
@@ -308,7 +308,7 @@ function DutyBreakdown({ calc }: { calc: Calculated }) {
 
       <div className="mt-4 rounded-xl border border-border bg-secondary/30 p-5">
         <div className="flex gap-3">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
           <div className="space-y-2 text-xs leading-relaxed text-muted-foreground">
             <p>
               <span className="font-medium text-foreground">
@@ -328,7 +328,7 @@ function DutyBreakdown({ calc }: { calc: Calculated }) {
               href={ICUMS_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 font-medium text-gold hover:underline"
+              className="inline-flex items-center gap-1.5 font-medium text-brand hover:underline"
             >
               Check the official ICUMS calculator
               <ExternalLink className="h-3 w-3" />

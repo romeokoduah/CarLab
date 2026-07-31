@@ -49,7 +49,7 @@ export function DiscountBox({ car, onApplied }: Props) {
   return (
     <div className="rounded-2xl border border-border bg-secondary/30 p-4">
       <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-        <Tag className="h-4 w-4 text-gold" />
+        <Tag className="h-4 w-4 text-brand" />
         Have a discount code?
       </div>
 
@@ -69,14 +69,14 @@ export function DiscountBox({ car, onApplied }: Props) {
               result && !result.ok && "border-destructive",
             )}
           />
-          <Button type="submit" variant="gold" className="shrink-0">
+          <Button type="submit" variant="brand" className="shrink-0">
             Apply
           </Button>
         </form>
       ) : (
-        <div className="rounded-xl border border-gold/30 bg-gold/5 p-3">
+        <div className="rounded-xl border border-brand/30 bg-brand/5 p-3">
           <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-gold">
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-brand">
               <Check className="h-4 w-4" /> {applied.code?.code} applied
             </span>
             <button

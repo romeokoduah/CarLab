@@ -51,7 +51,7 @@ export function Pagination({
             className={cn(
               "h-9 min-w-9 rounded-lg px-3 text-sm font-medium transition-colors",
               n === page
-                ? "bg-gold text-black"
+                ? "bg-brand text-brand-foreground"
                 : "border border-border text-foreground hover:bg-accent",
             )}
           >

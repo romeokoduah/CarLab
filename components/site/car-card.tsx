@@ -36,7 +36,7 @@ export function CarCard({ car }: { car: Car }) {
         {/* top-left badges */}
         <div className="absolute left-3 top-3 flex flex-wrap items-center gap-1.5">
           <StatusBadge status={car.status} />
-          {car.condition === "New" && <Badge variant="gold">New</Badge>}
+          {car.condition === "New" && <Badge variant="brand">New</Badge>}
         </div>
 
         {/* top-right actions */}
@@ -83,15 +83,15 @@ export function CarCard({ car }: { car: Car }) {
 
         <div className="mt-3 grid grid-cols-3 gap-2 border-y border-border py-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <Gauge className="h-3.5 w-3.5 text-gold" />
+            <Gauge className="h-3.5 w-3.5 text-brand" />
             {formatMileage(car.mileageKm)}
           </span>
           <span className="flex items-center gap-1.5">
-            <Cog className="h-3.5 w-3.5 text-gold" />
+            <Cog className="h-3.5 w-3.5 text-brand" />
             {car.transmission === "Automatic" ? "Auto" : "Manual"}
           </span>
           <span className="flex items-center gap-1.5">
-            <FuelIcon className="h-3.5 w-3.5 text-gold" />
+            <FuelIcon className="h-3.5 w-3.5 text-brand" />
             {car.fuel}
           </span>
         </div>

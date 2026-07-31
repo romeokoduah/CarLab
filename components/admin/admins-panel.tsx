@@ -106,7 +106,7 @@ export function AdminsPanel({ currentEmail }: { currentEmail: string | null }) {
           reservations; super admins can also manage users, duty rates and
           settings.
         </p>
-        <Button variant="gold" onClick={() => setOpen(true)}>
+        <Button variant="brand" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4" /> Add admin
         </Button>
       </div>
@@ -123,7 +123,7 @@ export function AdminsPanel({ currentEmail }: { currentEmail: string | null }) {
               <span
                 className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border ${
                   a.role === "super_admin"
-                    ? "border-gold/40 bg-gold/10 text-gold"
+                    ? "border-brand/40 bg-brand/10 text-brand"
                     : "border-border text-muted-foreground"
                 }`}
               >
@@ -230,7 +230,7 @@ export function AdminsPanel({ currentEmail }: { currentEmail: string | null }) {
               </Select>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" variant="gold" className="w-full" disabled={busy}>
+            <Button type="submit" variant="brand" className="w-full" disabled={busy}>
               {busy ? "Creating…" : "Create admin"}
             </Button>
           </form>

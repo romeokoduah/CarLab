@@ -72,7 +72,7 @@ export function RequestACar() {
         <div className="grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           {/* Pitch */}
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-medium text-gold">
+            <span className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/10 px-3 py-1 text-xs font-medium text-brand">
               <Clock className="h-3.5 w-3.5" />
               Reply within 24 hours
             </span>
@@ -91,7 +91,7 @@ export function RequestACar() {
                 "Import duty estimated separately",
               ].map((t) => (
                 <li key={t} className="flex items-start gap-2.5">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
                   {t}
                 </li>
               ))}
@@ -100,13 +100,13 @@ export function RequestACar() {
 
           {/* Form, or the reference once it's in */}
           {issued ? (
-            <div className="flex flex-col justify-center rounded-xl border border-gold/40 bg-gold/5 p-7 text-center">
+            <div className="flex flex-col justify-center rounded-xl border border-brand/40 bg-brand/5 p-7 text-center">
               <p className="text-lg font-semibold">Request received</p>
               <p className="mt-2 text-sm text-muted-foreground">
                 We&apos;ll be in touch within 24 hours. Keep this reference —
                 quote it any time you contact us.
               </p>
-              <p className="mt-5 font-mono text-3xl font-semibold tracking-[0.15em] text-gold">
+              <p className="mt-5 font-mono text-3xl font-semibold tracking-[0.15em] text-brand">
                 {issued}
               </p>
               <button
@@ -223,7 +223,7 @@ export function RequestACar() {
 
               <Button
                 type="submit"
-                variant="gold"
+                variant="brand"
                 size="lg"
                 className="w-full"
                 disabled={busy}

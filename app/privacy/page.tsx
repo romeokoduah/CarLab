@@ -15,7 +15,7 @@ export default async function PrivacyPage() {
 
   return (
     <div className="container max-w-3xl py-14 sm:py-20">
-      <p className="text-xs font-medium uppercase tracking-[0.2em] text-gold">
+      <p className="text-xs font-medium uppercase tracking-[0.2em] text-brand">
         Legal
       </p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">

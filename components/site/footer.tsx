@@ -34,7 +34,7 @@ export function SiteFooter({ initialSettings }: { initialSettings: Settings }) {
           </p>
           <div className="mt-5 flex flex-col gap-2 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-gold" /> Delivered to{" "}
+              <MapPin className="h-4 w-4 text-brand" /> Delivered to{" "}
               {SITE_CONFIG.location}
             </span>
             {lines.map((number, i) => (
@@ -47,7 +47,7 @@ export function SiteFooter({ initialSettings }: { initialSettings: Settings }) {
               >
                 {/* One icon for the group; the second line indents under it. */}
                 {i === 0 ? (
-                  <Phone className="h-4 w-4 text-gold" />
+                  <Phone className="h-4 w-4 text-brand" />
                 ) : (
                   <span className="h-4 w-4" aria-hidden />
                 )}

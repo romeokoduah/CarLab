@@ -22,7 +22,7 @@ function FeaturedTile({ car, large }: { car: Car; large?: boolean }) {
     <Link
       href={`/car/${car.id}`}
       className={cn(
-        "group relative block overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-gold/40",
+        "group relative block overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-brand/40",
         large ? "sm:col-span-2 sm:row-span-2" : "",
       )}
     >
@@ -42,7 +42,7 @@ function FeaturedTile({ car, large }: { car: Car; large?: boolean }) {
 
         <div className="absolute left-4 top-4 flex items-center gap-1.5">
           {car.condition === "New" ? (
-            <Badge variant="gold">New</Badge>
+            <Badge variant="brand">New</Badge>
           ) : (
             <Badge variant="default" className="bg-black/60 text-white">
               {car.condition}
@@ -76,7 +76,7 @@ function FeaturedTile({ car, large }: { car: Car; large?: boolean }) {
                 <Price ghs={car.priceGhs} className="text-white" />
               </div>
             </div>
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 transition-colors group-hover:bg-gold group-hover:text-black">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 transition-colors group-hover:bg-brand group-hover:text-brand-foreground">
               <ArrowUpRight className="h-5 w-5" />
             </span>
           </div>
@@ -100,7 +100,7 @@ export function FeaturedCars({ initialCars = [] }: { initialCars?: Car[] }) {
     <section className="container py-20">
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-gold">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-brand">
             Featured
           </p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">

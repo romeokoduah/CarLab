@@ -42,7 +42,7 @@ export function PasswordForm() {
       className="rounded-2xl border border-border bg-card p-5"
     >
       <h3 className="flex items-center gap-2 text-sm font-semibold">
-        <KeyRound className="h-4 w-4 text-gold" /> Change my password
+        <KeyRound className="h-4 w-4 text-brand" /> Change my password
       </h3>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">

@@ -25,7 +25,7 @@ export function Price({ ghs, discountedGhs, className }: PriceProps) {
   if (hasDiscount) {
     return (
       <span className={cn("flex flex-wrap items-baseline gap-2", className)}>
-        <span className="font-semibold text-gold">
+        <span className="font-semibold text-brand">
           {formatPrice(discountedGhs!, cur, rate)}
         </span>
         <span className="text-sm text-muted-foreground line-through">

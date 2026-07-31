@@ -191,7 +191,7 @@ export function SettingsForm() {
           >
             <RotateCcw className="h-4 w-4" /> Reset demo data
           </Button>
-          <Button type="submit" variant="gold" disabled={saving || !hydrated}>
+          <Button type="submit" variant="brand" disabled={saving || !hydrated}>
             <Save className="h-4 w-4" />
             {saving ? "Saving…" : "Save settings"}
           </Button>
@@ -226,7 +226,7 @@ export function SettingsForm() {
                       </td>
                       <td
                         className={`px-3 py-2 text-right font-medium ${
-                          up ? "text-gold" : "text-emerald-500"
+                          up ? "text-brand" : "text-emerald-500"
                         }`}
                       >
                         {formatPrice(row.newPriceGhs, "GHS", settings.ghsPerUsd)}
@@ -246,7 +246,7 @@ export function SettingsForm() {
               Cancel
             </Button>
             <Button
-              variant="gold"
+              variant="brand"
               disabled={saving}
               onClick={() => pending && void commit(pending)}
             >

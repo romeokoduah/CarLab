@@ -113,7 +113,7 @@ export function InventoryManager() {
             </SelectContent>
           </Select>
         </div>
-        <Button variant="gold" onClick={openAdd}>
+        <Button variant="brand" onClick={openAdd}>
           <Plus className="h-4 w-4" /> Add car
         </Button>
       </div>

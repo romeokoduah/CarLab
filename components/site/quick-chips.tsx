@@ -92,11 +92,11 @@ function Chip({
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
         active
-          ? "border-gold/50 bg-gold/10 text-foreground"
+          ? "border-brand/50 bg-brand/10 text-foreground"
           : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
       )}
     >
-      {active && <Check className="h-3.5 w-3.5 text-gold" />}
+      {active && <Check className="h-3.5 w-3.5 text-brand" />}
       {children}
     </button>
   );

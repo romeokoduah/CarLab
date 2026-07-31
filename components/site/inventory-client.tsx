@@ -362,7 +362,7 @@ export function InventoryClient({
                 <SlidersHorizontal className="h-4 w-4" />
                 Filters
                 {activeCount > 0 && (
-                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1.5 text-xs font-semibold text-black">
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-xs font-semibold text-brand-foreground">
                     {activeCount}
                   </span>
                 )}
@@ -384,7 +384,7 @@ export function InventoryClient({
               />
               <Button
                 className="mt-4 w-full"
-                variant="gold"
+                variant="brand"
                 onClick={() => setSheetOpen(false)}
               >
                 Show {results.length} results
@@ -500,7 +500,7 @@ function EmptyState({ onReset }: { onReset: () => void }) {
       <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">
         Try widening your price or year range, or clearing a filter or two.
       </p>
-      <Button onClick={onReset} variant="gold" className="mt-6">
+      <Button onClick={onReset} variant="brand" className="mt-6">
         Reset filters
       </Button>
     </div>

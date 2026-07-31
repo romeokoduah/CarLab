@@ -95,11 +95,11 @@ export function EnquiryGate({ open, onOpenChange, carId, buildHref }: Props) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="rounded-xl border border-gold/40 bg-gold/5 px-5 py-6 text-center">
+          <div className="rounded-xl border border-brand/40 bg-brand/5 px-5 py-6 text-center">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Your reference
             </p>
-            <p className="mt-2 font-mono text-3xl font-semibold tracking-[0.15em] text-gold">
+            <p className="mt-2 font-mono text-3xl font-semibold tracking-[0.15em] text-brand">
               {issued}
             </p>
             <button
@@ -167,7 +167,7 @@ export function EnquiryGate({ open, onOpenChange, carId, buildHref }: Props) {
               className={
                 "flex-1 rounded-md px-3 py-2 text-sm transition-colors " +
                 (mode === m
-                  ? "bg-gold/10 font-medium text-foreground"
+                  ? "bg-brand/10 font-medium text-foreground"
                   : "text-muted-foreground hover:text-foreground")
               }
             >
@@ -226,7 +226,7 @@ export function EnquiryGate({ open, onOpenChange, carId, buildHref }: Props) {
                 <Link
                   href="/privacy"
                   target="_blank"
-                  className="text-gold underline-offset-4 hover:underline"
+                  className="text-brand underline-offset-4 hover:underline"
                 >
                   privacy notice
                 </Link>
@@ -238,7 +238,7 @@ export function EnquiryGate({ open, onOpenChange, carId, buildHref }: Props) {
 
             <Button
               type="submit"
-              variant="gold"
+              variant="brand"
               className="w-full"
               disabled={busy}
             >
@@ -268,7 +268,7 @@ export function EnquiryGate({ open, onOpenChange, carId, buildHref }: Props) {
 
             <Button
               type="submit"
-              variant="gold"
+              variant="brand"
               className="w-full"
               disabled={busy}
             >
@@ -278,7 +278,7 @@ export function EnquiryGate({ open, onOpenChange, carId, buildHref }: Props) {
         )}
 
         <p className="flex items-start gap-2 text-[11px] leading-relaxed text-muted-foreground">
-          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
+          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
           We only use these details to respond to your enquiry. We never sell or
           share them.
         </p>
