@@ -36,6 +36,9 @@
     --gold: 41 46% 46%;
     --gold-soft: 41 52% 62%;
 
+    /* The logo's own brand blue, #1325A5. */
+    --logo-ink: 233 79% 36%;
+
     --radius: 1rem;
   }
 
@@ -71,6 +74,11 @@
 
     --gold: 41 58% 60%;
     --gold-soft: 41 62% 70%;
+
+    /* Brand blue is unreadable on near-black, so the logo wears the site's
+       gold here instead. The blue is kept for the light theme and for the
+       standalone asset in /public/logo.svg. */
+    --logo-ink: 41 58% 60%;
   }
 }
 
@@ -97,6 +105,9 @@
   }
   .text-gold {
     color: hsl(var(--gold));
+  }
+  .text-logo-ink {
+    color: hsl(var(--logo-ink));
   }
   /* subtle luxury grain / vignette for hero sections */
   .showroom-vignette {

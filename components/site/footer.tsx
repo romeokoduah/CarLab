@@ -27,7 +27,7 @@ export function SiteFooter({ initialSettings }: { initialSettings: Settings }) {
     <footer className="border-t border-border">
       <div className="container grid gap-10 py-14 md:grid-cols-4">
         <div className="md:col-span-2">
-          <Logo />
+          <Logo className="h-10 sm:h-11" />
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
             {SITE_CONFIG.tagline}. Every vehicle inspected and documented
             before it ships. Message us on WhatsApp for an all-in quote.
@@ -90,11 +90,18 @@ export function SiteFooter({ initialSettings }: { initialSettings: Settings }) {
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold">Dealer</h4>
+          {/* No link to /admin here — the dashboard is staff-only and is
+              reached by direct URL, the same rule the public nav follows. */}
+          <h4 className="text-sm font-semibold">Company</h4>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
             <li>
-              <Link href="/admin" className="hover:text-foreground">
-                Admin dashboard
+              <Link href="/duty-calculator" className="hover:text-foreground">
+                Import duty calculator
+              </Link>
+            </li>
+            <li>
+              <Link href="/privacy" className="hover:text-foreground">
+                Privacy notice
               </Link>
             </li>
             <li>

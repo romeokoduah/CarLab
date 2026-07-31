@@ -77,7 +77,7 @@ export default function AdminPage() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
-            <Logo />
+            <Logo className="h-8 sm:h-9" />
             <span className="hidden rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground sm:inline">
               Dashboard
             </span>

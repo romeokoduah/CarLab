@@ -31,7 +31,7 @@ export function LoginForm() {
     <div className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <Logo />
+          <Logo className="h-12" />
           <div className="mt-6 grid h-12 w-12 place-items-center rounded-2xl border border-gold/30 bg-gold/10">
             <Lock className="h-5 w-5 text-gold" />
           </div>

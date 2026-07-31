@@ -3,6 +3,7 @@ import { Sora } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { LogoSprite } from "@/components/site/logo-artwork";
 import { SiteNavbar } from "@/components/site/navbar";
 import { SiteFooter } from "@/components/site/footer";
 import { FloatingWhatsApp } from "@/components/site/floating-whatsapp";
@@ -73,6 +74,8 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <StoreHydrator />
+          {/* The logo artwork, defined once for every <Logo /> on the page. */}
+          <LogoSprite />
           <div className="relative flex min-h-screen flex-col">
             <SiteNavbar />
             <main className="flex-1">{children}</main>
