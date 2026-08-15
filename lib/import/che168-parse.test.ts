@@ -226,6 +226,19 @@ test("the car id is pulled from every che168 link shape", () => {
     parseSrcId("https://www.che168.com/dealer/539175/59044612.html"),
     "59044612",
   );
+  // The share link the dealer listing page actually produces: many stacked
+  // "#" fragments, and a queryid containing "$" and a GUID. Everything after
+  // the first "#" is the hash, so the path still resolves cleanly — but this
+  // is the exact string people paste, so pin it.
+  assert.equal(
+    parseSrcId(
+      "https://www.che168.com/dealer/647224/58214025.html?pvareaid=100519&userpid=0" +
+        "&usercid=0&offertype=&offertag=0&activitycartype=0&fromsxmlist=0&platfrom=36" +
+        "#pos=4#page=1#rtype=10#isrecom=0#filter=29#module=10#refreshid=0#recomid=0" +
+        "#queryid=1786814767$0$6864A45C-1588-4013-A664-D4F4D93CDA95$25739$3#cartype=70",
+    ),
+    "58214025",
+  );
   assert.equal(parseSrcId("not a url"), null);
   assert.equal(parseSrcId("https://www.che168.com/"), null);
 });
