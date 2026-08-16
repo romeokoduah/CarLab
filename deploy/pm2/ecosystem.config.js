@@ -7,7 +7,11 @@ module.exports = {
       name: "eclipse-motors",
       cwd: "/var/www/CarLab",
       script: "npm",
-      args: "start",
+      // "-- -H 127.0.0.1" and not just the HOSTNAME env var: `next start` only
+      // reads HOSTNAME in standalone mode. In this (non-standalone) setup it
+      // ignores it and binds 0.0.0.0 regardless, which is exactly what we are
+      // trying to stop. npm forwards everything after `--` to next.
+      args: "start -- -H 127.0.0.1",
       env: {
         NODE_ENV: "production",
         PORT: 3001,
