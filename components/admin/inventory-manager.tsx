@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   ExternalLink,
   ShoppingCart,
+  Share2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,12 +53,20 @@ import { CarForm } from "@/components/admin/car-form";
 import { useStore } from "@/lib/store";
 import { formatPrice } from "@/lib/currency";
 import { formatMileage } from "@/lib/utils";
+import {
+  buildPhotoCaption,
+  buildPhotoFallbackLink,
+  canShareFiles,
+  collectCarPhotos,
+  downloadFiles,
+} from "@/lib/share-photos";
 import { toast } from "sonner";
 import type { Car, CarStatus } from "@/lib/types";
 
 export function InventoryManager() {
   const cars = useStore((s) => s.cars);
   const rate = useStore((s) => s.settings.ghsPerUsd);
+  const whatsappNumber = useStore((s) => s.settings.whatsappNumber);
   const deleteCar = useStore((s) => s.deleteCar);
   const duplicateCar = useStore((s) => s.duplicateCar);
   const setCarStatus = useStore((s) => s.setCarStatus);
@@ -66,6 +76,7 @@ export function InventoryManager() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Car | undefined>(undefined);
   const [deleteTarget, setDeleteTarget] = useState<Car | null>(null);
+  const [sharingId, setSharingId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -85,6 +96,57 @@ export function InventoryManager() {
   const openEdit = (car: Car) => {
     setEditing(car);
     setFormOpen(true);
+  };
+
+  /**
+   * Hand this car's photos to the phone's share sheet, so they can go straight
+   * to a buyer on WhatsApp as real pictures. Where a browser will not share
+   * files (most desktops), the photos are saved instead and the chat opens
+   * with the caption ready for them to be attached.
+   */
+  const sharePhotos = async (car: Car) => {
+    if (sharingId) return;
+    setSharingId(car.id);
+    const toastId = toast.loading("Preparing photos…");
+    try {
+      const files = await collectCarPhotos(car);
+      if (files.length === 0) {
+        toast.error("No photos on this listing to send.", { id: toastId });
+        return;
+      }
+      const caption = buildPhotoCaption({
+        car,
+        listingUrl: `${window.location.origin}/car/${car.id}`,
+        priceLabel: formatPrice(car.priceGhs, "GHS", rate),
+      });
+      const count = `${files.length} photo${files.length === 1 ? "" : "s"}`;
+
+      if (canShareFiles(navigator, files)) {
+        try {
+          await navigator.share({ files, text: caption });
+          toast.success(`${count} shared`, { id: toastId });
+        } catch (err) {
+          // Dismissing the share sheet is a choice, not a failure.
+          if ((err as Error)?.name === "AbortError") toast.dismiss(toastId);
+          else throw err;
+        }
+        return;
+      }
+
+      downloadFiles(files);
+      window.open(
+        buildPhotoFallbackLink(whatsappNumber, caption),
+        "_blank",
+        "noopener",
+      );
+      toast.success(`${count} saved — attach them in WhatsApp.`, {
+        id: toastId,
+      });
+    } catch {
+      toast.error("Could not prepare the photos. Try again.", { id: toastId });
+    } finally {
+      setSharingId(null);
+    }
   };
 
   return (
@@ -188,6 +250,23 @@ export function InventoryManager() {
                           <Link href={`/car/${car.id}`} target="_blank">
                             <ExternalLink className="h-4 w-4" /> View listing
                           </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={sharingId !== null}
+                          onSelect={(e) => {
+                            // Keep the menu open long enough to show progress.
+                            e.preventDefault();
+                            void sharePhotos(car);
+                          }}
+                        >
+                          {sharingId === car.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Share2 className="h-4 w-4" />
+                          )}
+                          {sharingId === car.id
+                            ? "Preparing photos…"
+                            : "Send photos to WhatsApp"}
                         </DropdownMenuItem>
                         {car.sourceUrl && (
                           <DropdownMenuItem asChild>
