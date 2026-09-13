@@ -15,7 +15,7 @@
  * copy; `reconcileListing` merges the two so a literal price read can never be
  * overridden by the model.
  */
-import { chromium, type Browser } from "playwright";
+import { chromium, type Browser, type Page } from "playwright";
 import {
   Che168ParseError,
   field,
@@ -67,6 +67,44 @@ async function blockHeavyResources(page: import("playwright").Page) {
   });
 }
 
+/** Tencent EdgeOne's "Verifying the safety of the connection" interstitial. */
+async function isEdgeOneChallenge(page: Page): Promise<boolean> {
+  const text = await page
+    .evaluate(() => document.body?.innerText ?? "")
+    .catch(() => "");
+  return /Verifying the safety of the connection|Protected by Tencent Cloud EdgeOne/i.test(text);
+}
+
+/**
+ * Wait until the Chinese page is showing the listing itself.
+ *
+ * che168 sometimes serves the page and then reloads it once (a cookie
+ * round-trip). A fixed sleep followed by reading `document.body` raced that
+ * reload — "Execution context was destroyed", or a null body. waitForFunction
+ * re-arms across the navigation, so it waits out the reload instead.
+ */
+async function waitForListingText(page: Page) {
+  try {
+    await page.waitForFunction(
+      () => !!document.body && /表显里程|上牌时间|过户次数/.test(document.body.innerText),
+      null,
+      { timeout: 30000 },
+    );
+  } catch {
+    if (await isEdgeOneChallenge(page)) {
+      throw new Che168ImportError(
+        "che168 put a verification check in front of that listing, so it can't be read automatically right now.",
+      );
+    }
+    throw new Che168ImportError(
+      "That listing page never showed its details. It may have been taken down, or che168 changed its layout.",
+    );
+  }
+}
+
+const isNavigationRace = (e: unknown) =>
+  /Execution context was destroyed|because of a navigation|Cannot read properties of null/i.test(String(e));
+
 async function extractCn(browser: Browser, url: string) {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1200 },
@@ -80,29 +118,35 @@ async function extractCn(browser: Browser, url: string) {
     // parallel, by the import route.
     await blockHeavyResources(page);
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
-    // Measured: price/mileage text and every photo URL are already present at
-    // domcontentloaded once the images are not competing for the connection.
-    // The old 3.5s + 1.5s of fixed sleeping was covering for that contention.
-    await page.waitForTimeout(900);
-    await page.evaluate(async () => {
-      for (let y = 0; y < document.body.scrollHeight; y += 600) {
-        window.scrollTo(0, y);
-        await new Promise((r) => setTimeout(r, 90));
+    // Price/mileage text and every photo URL are present as soon as the
+    // listing text is, once images are not competing for the connection. If
+    // the self-reload lands mid-read, wait for the new document and read again.
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await waitForListingText(page);
+        await page.evaluate(async () => {
+          for (let y = 0; y < document.body.scrollHeight; y += 600) {
+            window.scrollTo(0, y);
+            await new Promise((r) => setTimeout(r, 90));
+          }
+        });
+        await page.waitForTimeout(500);
+        const text: string = await page.evaluate(() =>
+          document.body.innerText.replace(/\n{2,}/g, "\n"),
+        );
+        const images: string[] = await page.evaluate(() =>
+          [...new Set(
+            [...document.querySelectorAll("img")]
+              .flatMap((el) => [el.src, el.getAttribute("data-src"), el.getAttribute("data-original")])
+              .filter((s): s is string => !!s && /autoimg\.cn/.test(s) && /900x675/.test(s))
+              .map((s) => s.split("?")[0]),
+          )],
+        );
+        return { text, images };
+      } catch (e) {
+        if (attempt >= 3 || !isNavigationRace(e)) throw e;
       }
-    });
-    await page.waitForTimeout(500);
-    const text: string = await page.evaluate(() =>
-      document.body.innerText.replace(/\n{2,}/g, "\n"),
-    );
-    const images: string[] = await page.evaluate(() =>
-      [...new Set(
-        [...document.querySelectorAll("img")]
-          .flatMap((el) => [el.src, el.getAttribute("data-src"), el.getAttribute("data-original")])
-          .filter((s): s is string => !!s && /autoimg\.cn/.test(s) && /900x675/.test(s))
-          .map((s) => s.split("?")[0]),
-      )],
-    );
-    return { text, images };
+    }
   } finally {
     await page.close();
   }
@@ -116,9 +160,14 @@ async function extractEn(browser: Browser, srcId: string) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1400 } });
   try {
     await page.goto(`https://global.che168.com/en/detail/${srcId}`, {
-      waitUntil: "networkidle",
+      waitUntil: "domcontentloaded",
       timeout: 45000,
     });
+    // The mirror can sit behind a Tencent EdgeOne "check the box" page, which
+    // never reaches networkidle — waiting for it burned the full 45s on every
+    // import. Spot the challenge and fall back to the Chinese page at once.
+    if (await isEdgeOneChallenge(page)) return null;
+    await page.waitForLoadState("networkidle", { timeout: 45000 });
     await page.waitForTimeout(2000);
     await page.evaluate(async () => {
       for (let y = 0; y < document.body.scrollHeight; y += 600) {

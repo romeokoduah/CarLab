@@ -309,14 +309,17 @@ export function reconcileListing(
 
   const make = firstNonEmpty(det.make, ai.make) || "Unknown";
   const model = firstNonEmpty(det.model, ai.model) || "Unknown";
+  const trim = firstNonEmpty(det.trim, ai.trim);
+  const year = det.year ?? posInt(ai.year) ?? new Date().getFullYear();
+  const colour = firstNonEmpty(ai.colour, det.colour) || "Unspecified";
 
   return {
     make,
     model,
-    trim: firstNonEmpty(det.trim, ai.trim),
-    year: det.year ?? posInt(ai.year) ?? new Date().getFullYear(),
+    trim,
+    year,
     mileageKm,
-    colour: firstNonEmpty(ai.colour, det.colour) || "Unspecified",
+    colour,
     previousOwners: det.previousOwners,
     carRmb,
     bodyType: oneOf(ai.bodyType, BODY_TYPES) ?? "SUV",
@@ -328,9 +331,29 @@ export function reconcileListing(
     cylinders: posInt(ai.cylinders),
     horsepower: posInt(ai.horsepower),
     engineCapacity: ai.engineCapacity?.trim() || undefined,
-    description: ai.description.trim(),
+    description:
+      ai.description.trim() ||
+      fallbackDescription({ year, make, model, trim, mileageKm, colour }),
     features: [...new Set(ai.features.map((f) => f.trim()).filter(Boolean))],
   };
+}
+
+/**
+ * A plain one-line description from the reconciled facts, for when DeepSeek
+ * sends none. Facts only — no provenance, per the storefront rule.
+ */
+export function fallbackDescription(l: {
+  year: number;
+  make: string;
+  model: string;
+  trim: string;
+  mileageKm: number;
+  colour: string;
+}): string {
+  const name = [l.year, l.make, l.model, l.trim].filter(Boolean).join(" ");
+  const colour =
+    l.colour && l.colour !== "Unspecified" ? `, finished in ${l.colour.toLowerCase()}` : "";
+  return `${name} with ${l.mileageKm.toLocaleString("en-US")} km on the clock${colour}.`;
 }
 
 function firstNonEmpty(...vals: (string | undefined)[]): string {

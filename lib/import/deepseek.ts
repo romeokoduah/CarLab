@@ -164,51 +164,106 @@ ${input.enText ? `── ENGLISH MIRROR + CONFIG SHEET ──\n${input.enText.sl
     throw new DeepSeekImportError("DeepSeek returned an unexpected response shape.");
   }
 
-  let parsed: Record<string, unknown>;
+  try {
+    return parseExtraction(content);
+  } catch (e) {
+    // The raw reply is the only evidence of what the model actually sent.
+    console.error("DeepSeek extraction rejected:", content.slice(0, 2000));
+    throw e;
+  }
+}
+
+type Json = Record<string, unknown>;
+
+const isObject = (v: unknown): v is Json =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+
+const RECORD_KEYS = ["make", "model", "description", "features"];
+
+/** Reads `key` from the record, forgiving the model's casing ("Description"). */
+function get(record: Json, key: string): unknown {
+  if (key in record) return record[key];
+  const lower = key.toLowerCase();
+  const hit = Object.keys(record).find((k) => k.toLowerCase() === lower);
+  return hit === undefined ? undefined : record[hit];
+}
+
+const hasRecordKeys = (o: Json) => RECORD_KEYS.some((k) => get(o, k) !== undefined);
+
+/**
+ * Turns DeepSeek's JSON reply into an ExtractedListing.
+ *
+ * JSON mode guarantees JSON, not our shape. Replies seen in the wild wrap the
+ * record in one key ({"vehicle": {...}}), split the description into an array
+ * of paragraphs, or send features as one delimited string — each of which used
+ * to fail the whole import with "missing a description". A missing description
+ * is no longer fatal either: the hard facts are what matter, the form is a
+ * draft the admin reviews, and reconcileListing writes a plain one from facts.
+ */
+export function parseExtraction(content: string): ExtractedListing {
+  let parsed: unknown;
   try {
     parsed = JSON.parse(content);
   } catch {
     throw new DeepSeekImportError("DeepSeek did not return valid JSON.");
   }
 
-  const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
-  const numOrU = (v: unknown): number | undefined =>
-    typeof v === "number" && Number.isFinite(v) ? v : undefined;
-  const enumOrU = (v: unknown): string | undefined =>
-    typeof v === "string" && v.trim() ? v.trim() : undefined;
+  let record: Json | undefined;
+  if (isObject(parsed)) {
+    record = hasRecordKeys(parsed)
+      ? parsed
+      : Object.values(parsed).filter(isObject).find(hasRecordKeys);
+  }
+  if (!record) {
+    throw new DeepSeekImportError("DeepSeek's reply did not contain a listing record.");
+  }
+  const r = record;
 
-  const description = str(parsed.description);
-  const features = parsed.features;
-  if (!description) {
-    throw new DeepSeekImportError("DeepSeek response was missing a description.");
-  }
-  if (!Array.isArray(features) || !features.every((f) => typeof f === "string")) {
-    throw new DeepSeekImportError("DeepSeek response was missing a feature list.");
-  }
-  const make = str(parsed.make);
-  const model = str(parsed.model);
+  const str = (key: string): string => {
+    const v = get(r, key);
+    return typeof v === "string" ? v.trim() : "";
+  };
+  const num = (key: string): number | undefined => {
+    const v = get(r, key);
+    return typeof v === "number" && Number.isFinite(v) ? v : undefined;
+  };
+
+  const make = str("make");
+  const model = str("model");
   if (!make && !model) {
     throw new DeepSeekImportError("DeepSeek could not identify the make or model.");
   }
 
+  const rawDescription = get(r, "description");
+  const description = Array.isArray(rawDescription)
+    ? rawDescription.filter((p): p is string => typeof p === "string").map((p) => p.trim()).filter(Boolean).join("\n\n")
+    : str("description");
+
+  const rawFeatures = get(r, "features");
+  const features = Array.isArray(rawFeatures)
+    ? rawFeatures.filter((f): f is string => typeof f === "string")
+    : typeof rawFeatures === "string"
+      ? rawFeatures.split(/\n|;|、/)
+      : [];
+
   return {
     make,
     model,
-    trim: str(parsed.trim),
-    year: numOrU(parsed.year),
-    mileageKm: numOrU(parsed.mileageKm),
-    colour: str(parsed.colour) || "Unspecified",
-    bodyType: enumOrU(parsed.bodyType) as ExtractedListing["bodyType"],
-    fuel: enumOrU(parsed.fuel) as ExtractedListing["fuel"],
-    transmission: enumOrU(parsed.transmission) as ExtractedListing["transmission"],
-    drivetrain: enumOrU(parsed.drivetrain) as ExtractedListing["drivetrain"],
-    seats: numOrU(parsed.seats),
-    doors: numOrU(parsed.doors),
-    cylinders: numOrU(parsed.cylinders),
-    horsepower: numOrU(parsed.horsepower),
-    engineCapacity: enumOrU(parsed.engineCapacity),
-    carRmb: numOrU(parsed.carRmb),
+    trim: str("trim"),
+    year: num("year"),
+    mileageKm: num("mileageKm"),
+    colour: str("colour") || "Unspecified",
+    bodyType: (str("bodyType") || undefined) as ExtractedListing["bodyType"],
+    fuel: (str("fuel") || undefined) as ExtractedListing["fuel"],
+    transmission: (str("transmission") || undefined) as ExtractedListing["transmission"],
+    drivetrain: (str("drivetrain") || undefined) as ExtractedListing["drivetrain"],
+    seats: num("seats"),
+    doors: num("doors"),
+    cylinders: num("cylinders"),
+    horsepower: num("horsepower"),
+    engineCapacity: str("engineCapacity") || undefined,
+    carRmb: num("carRmb"),
     description,
-    features: features.map((f) => f.trim()).filter(Boolean),
+    features: features.map((f) => f.replace(/^[\s•●\-*]+/, "").trim()).filter(Boolean),
   };
 }

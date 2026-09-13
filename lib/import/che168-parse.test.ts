@@ -316,6 +316,26 @@ test("the breadcrumb make/model is preferred over the AI's when present", () => 
   assert.equal(r.trim, "2.0T Excellence");
 });
 
+test("an empty AI description is replaced by one written from the verified facts", () => {
+  const det: DeterministicFacts = {
+    carRmb: 63500,
+    mileageKm: 67900,
+    year: 2021,
+    previousOwners: 0,
+  };
+  const ai: ExtractedListing = {
+    ...AI_FULL,
+    make: "Changan",
+    model: "UNI-K",
+    trim: "Premium",
+    colour: "White",
+    mileageKm: 60000, // the literal read must win in the copy too
+    description: "",
+  };
+  const r = reconcileListing(det, ai);
+  assert.equal(r.description, "2021 Changan UNI-K Premium with 67,900 km on the clock, finished in white.");
+});
+
 test("a price readable by neither is a hard error, never a zero", () => {
   const det: DeterministicFacts = { mileageKm: 30000, previousOwners: 0 };
   const ai: ExtractedListing = { ...AI_FULL, carRmb: undefined };
