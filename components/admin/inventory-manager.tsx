@@ -56,12 +56,18 @@ import { formatMileage } from "@/lib/utils";
 import {
   buildPhotoCaption,
   buildPhotoFallbackLink,
+  buildSharePayload,
   canShareFiles,
   collectCarPhotos,
+  copyCaption,
+  pickShareablePhotos,
   downloadFiles,
 } from "@/lib/share-photos";
 import { toast } from "sonner";
 import type { Car, CarStatus } from "@/lib/types";
+
+/** Shown both for a listing with no photos and for photos that all failed. */
+const NO_PHOTOS = "No photos on this listing to send.";
 
 export function InventoryManager() {
   const cars = useStore((s) => s.cars);
@@ -100,18 +106,25 @@ export function InventoryManager() {
 
   /**
    * Hand this car's photos to the phone's share sheet, so they can go straight
-   * to a buyer on WhatsApp as real pictures. Where a browser will not share
-   * files (most desktops), the photos are saved instead and the chat opens
-   * with the caption ready for them to be attached.
+   * to a buyer on WhatsApp as real pictures.
+   *
+   * The details go on the clipboard rather than into the share: WhatsApp
+   * stamps a share's text onto every photo in the batch, which is ten copies
+   * of the same price and link. Pasting it onto the first photo is one extra
+   * gesture and leaves the other nine clean.
+   *
+   * Where a browser will not share files (most desktops), the photos are saved
+   * instead and the chat opens with the caption ready for them to be attached.
    */
   const sharePhotos = async (car: Car) => {
     if (sharingId) return;
     setSharingId(car.id);
     const toastId = toast.loading("Preparing photos…");
     try {
-      const files = await collectCarPhotos(car);
-      if (files.length === 0) {
-        toast.error("No photos on this listing to send.", { id: toastId });
+      // Checked before anything is copied: a listing with no photos should not
+      // quietly replace whatever the dealer had on their clipboard.
+      if (pickShareablePhotos(car).length === 0) {
+        toast.error(NO_PHOTOS, { id: toastId });
         return;
       }
       const caption = buildPhotoCaption({
@@ -119,12 +132,28 @@ export function InventoryManager() {
         listingUrl: `${window.location.origin}/car/${car.id}`,
         priceLabel: formatPrice(car.priceGhs, "GHS", rate),
       });
+      // Copied before the photos are fetched, while the tap is still fresh
+      // enough to buy clipboard access.
+      const captionCopied = await copyCaption(caption);
+
+      const files = await collectCarPhotos(car);
+      if (files.length === 0) {
+        toast.error(NO_PHOTOS, { id: toastId });
+        return;
+      }
       const count = `${files.length} photo${files.length === 1 ? "" : "s"}`;
 
       if (canShareFiles(navigator, files)) {
         try {
-          await navigator.share({ files, text: caption });
-          toast.success(`${count} shared`, { id: toastId });
+          await navigator.share(
+            buildSharePayload(files, caption, captionCopied),
+          );
+          toast.success(
+            captionCopied
+              ? `${count} shared — long-press the first photo's caption box and paste the details.`
+              : `${count} shared`,
+            { id: toastId },
+          );
         } catch (err) {
           // Dismissing the share sheet is a choice, not a failure.
           if ((err as Error)?.name === "AbortError") toast.dismiss(toastId);

@@ -72,6 +72,23 @@ export function buildPhotoFallbackLink(
   return `https://wa.me/${digits}?text=${encodeURIComponent(caption)}`;
 }
 
+/**
+ * What to hand `navigator.share()`.
+ *
+ * WhatsApp stamps a share's `text` onto every photo in the batch, so a caption
+ * sent that way arrives ten times over. Leaving `text` out is what keeps the
+ * photos clean — the caption travels by clipboard instead, to be pasted on the
+ * first picture. Where the clipboard is out of reach it rides along after all:
+ * a repeated caption is ugly, but a buyer with no price and no link is worse.
+ */
+export function buildSharePayload(
+  files: File[],
+  caption: string,
+  captionCopied: boolean,
+): { files: File[]; text?: string } {
+  return captionCopied ? { files } : { files, text: caption };
+}
+
 /** The slice of `navigator` this module needs — kept narrow so it can be faked. */
 export interface ShareTarget {
   share?: (data: { files?: File[]; text?: string }) => Promise<void>;
@@ -155,5 +172,21 @@ export function downloadFiles(files: File[]): void {
     link.click();
     // Revoked on a later tick so the click has taken the URL first.
     setTimeout(() => URL.revokeObjectURL(href), 30_000);
+  }
+}
+
+/**
+ * Put the caption on the clipboard, reporting whether it landed.
+ *
+ * Called before the photos are fetched, while the tap that started all this
+ * is still fresh: browsers grant clipboard access on user activation, and
+ * encoding ten images takes long enough to spend it.
+ */
+export async function copyCaption(caption: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(caption);
+    return true;
+  } catch {
+    return false;
   }
 }

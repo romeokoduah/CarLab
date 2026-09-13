@@ -4,6 +4,7 @@ import {
   MAX_SHARE_PHOTOS,
   buildPhotoCaption,
   buildPhotoFallbackLink,
+  buildSharePayload,
   canShareFiles,
   photoFileName,
   pickShareablePhotos,
@@ -178,4 +179,18 @@ test("the fallback chat opens on the dealer's own number, digits only", () => {
 test("a caption's newlines survive into the fallback link", () => {
   const href = buildPhotoFallbackLink("233554981410", "Camry\nGHS 685,000");
   assert.match(href, /Camry%0AGHS%20685%2C000/);
+});
+
+test("a caption on the clipboard is kept out of the share, off every photo", () => {
+  // WhatsApp stamps a share's text onto each photo in the batch. Once the
+  // caption is on the clipboard there is no reason to send it again.
+  const payload = buildSharePayload(photos, "2019 Toyota Camry", true);
+  assert.deepEqual(payload, { files: photos });
+  assert.ok(!("text" in payload), "text should be absent, not undefined");
+});
+
+test("a caption that could not be copied still rides along with the photos", () => {
+  // Repeated captions are ugly; a buyer with no price and no link is worse.
+  const payload = buildSharePayload(photos, "2019 Toyota Camry", false);
+  assert.deepEqual(payload, { files: photos, text: "2019 Toyota Camry" });
 });
