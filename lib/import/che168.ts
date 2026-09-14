@@ -32,6 +32,10 @@ import {
 } from "@/lib/import/che168-parse";
 import { canonicalMake } from "@/lib/data/vehicles";
 import { extractListing } from "@/lib/import/deepseek";
+import { LISTING_MARKERS, type PagePayload } from "@/lib/import/page-payload";
+
+const USE_THE_BOOKMARK =
+  "Use the browser bookmark instead: open the listing in your own browser, click “Send to Eclipse Motors”, copy, and paste it into the import box.";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
@@ -85,19 +89,29 @@ async function isEdgeOneChallenge(page: Page): Promise<boolean> {
  */
 async function waitForListingText(page: Page) {
   try {
+    // Also stop waiting the moment che168 redirects to its own captcha page —
+    // it does that to this server within seconds, and no amount of waiting
+    // gets past it.
     await page.waitForFunction(
-      () => !!document.body && /表显里程|上牌时间|过户次数/.test(document.body.innerText),
-      null,
+      (markers) =>
+        /captcha/i.test(location.pathname) ||
+        (!!document.body && new RegExp(markers).test(document.body.innerText)),
+      LISTING_MARKERS.source,
       { timeout: 30000 },
     );
   } catch {
     if (await isEdgeOneChallenge(page)) {
       throw new Che168ImportError(
-        "che168 put a verification check in front of that listing, so it can't be read automatically right now.",
+        `che168 put a verification check in front of that listing, so the server can't read it. ${USE_THE_BOOKMARK}`,
       );
     }
     throw new Che168ImportError(
-      "That listing page never showed its details. It may have been taken down, or che168 changed its layout.",
+      `That listing page never showed its details. It may have been taken down, or che168 changed its layout. ${USE_THE_BOOKMARK}`,
+    );
+  }
+  if (/captcha/i.test(new URL(page.url()).pathname)) {
+    throw new Che168ImportError(
+      `che168 sent the server to its security check (captcha), so it can't open listings itself right now. ${USE_THE_BOOKMARK}`,
     );
   }
 }
@@ -284,6 +298,47 @@ export async function scrapeChe168Listing(rawUrl: string): Promise<RawListing> {
     await browser.close();
   }
 
+  return buildListing({ rawUrl, srcId, cn, en });
+}
+
+/**
+ * Import from a listing the admin copied in their own browser with the
+ * "Send to Eclipse Motors" bookmark (lib/import/page-payload.ts).
+ *
+ * For when che168 will not show this server the listing: the page text and
+ * photo links come from the admin's browser instead of Playwright, and then go
+ * through exactly the same parsing, DeepSeek and reconciliation. There is no
+ * English mirror on this path — it is behind its own challenge anyway.
+ */
+export async function importChe168FromPage(copied: PagePayload): Promise<RawListing> {
+  const srcId = parseSrcId(copied.url);
+  if (!srcId) {
+    throw new Che168ImportError("Could not find a car id in the copied page's link.");
+  }
+  if (!LISTING_MARKERS.test(copied.text)) {
+    throw new Che168ImportError(
+      "The copied page doesn't include the car's details. Wait until the price and mileage show on che168, then click the bookmark again.",
+    );
+  }
+  return buildListing({
+    rawUrl: copied.url,
+    srcId,
+    cn: { text: copied.text, images: copied.images },
+    en: null,
+  });
+}
+
+async function buildListing({
+  rawUrl,
+  srcId,
+  cn,
+  en,
+}: {
+  rawUrl: string;
+  srcId: string;
+  cn: { text: string; images: string[] };
+  en: Awaited<ReturnType<typeof extractEn>>;
+}): Promise<RawListing> {
   // Deterministic reads from the Chinese page — the hard numbers.
   let carRmb: number | undefined;
   try {

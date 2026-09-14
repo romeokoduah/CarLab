@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { X, Plus, RotateCcw, Wand2, Loader2 } from "lucide-react";
+import { X, Plus, RotateCcw, Wand2, Loader2, Bookmark } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,11 @@ import {
 } from "@/lib/pricing";
 import { formatPrice } from "@/lib/currency";
 import { toast } from "sonner";
+import {
+  BOOKMARKLET_HREF,
+  isPagePayload,
+  pagePayloadTitle,
+} from "@/lib/import/page-payload";
 import {
   ALL_MAKES,
   ENGINE_CAPACITIES,
@@ -278,10 +283,23 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
     }));
   };
 
+  /** A page copied with the bookmark, rather than a link, is in the import box. */
+  const pagePasted = isPagePayload(importUrl);
+
+  /**
+   * React warns on (and newer versions block) `javascript:` hrefs in JSX, so
+   * the bookmark link gets its href set directly on the element.
+   */
+  const setBookmarkletHref = (el: HTMLAnchorElement | null) => {
+    if (el) el.setAttribute("href", BOOKMARKLET_HREF);
+  };
+
   const runImport = async () => {
-    const url = importUrl.trim();
-    if (!url) {
-      toast.error("Paste a che168 listing link first.");
+    const raw = importUrl.trim();
+    if (!raw) {
+      toast.error(
+        "Paste a che168 link, or a page copied with the Send to Eclipse Motors bookmark.",
+      );
       return;
     }
     setImporting(true);
@@ -289,7 +307,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
       const res = await fetch("/api/admin/import-listing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify(isPagePayload(raw) ? { page: raw } : { url: raw }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -450,13 +468,31 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
             </span>
           </SectionTitle>
           <div className="flex flex-col gap-2 rounded-2xl border border-border bg-muted/30 p-4 sm:flex-row">
-            <Input
-              value={importUrl}
-              onChange={(e) => setImportUrl(e.target.value)}
-              placeholder="https://www.che168.com/dealer/.../12345678.html"
-              disabled={importing}
-              className="flex-1"
-            />
+            {pagePasted ? (
+              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm">
+                <Bookmark className="h-4 w-4 shrink-0 text-brand" />
+                <span className="truncate">
+                  Copied page ready: {pagePayloadTitle(importUrl) || "che168 listing"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setImportUrl("")}
+                  disabled={importing}
+                  aria-label="Clear the copied page"
+                  className="ml-auto shrink-0 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <Input
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                placeholder="Paste a che168 link, or a page copied with the bookmark"
+                disabled={importing}
+                className="flex-1"
+              />
+            )}
             <Button type="button" onClick={runImport} disabled={importing}>
               {importing ? (
                 <>
@@ -474,6 +510,41 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
             confirms, and pulls photos. Nothing saves until you review the fields below
             and click Save.
           </p>
+          <details className="mt-3 rounded-2xl border border-border p-4 text-sm">
+            <summary className="cursor-pointer font-medium">
+              Link import failing? Use the browser bookmark
+            </summary>
+            <ol className="mt-3 list-decimal space-y-2 pl-5 text-muted-foreground">
+              <li>
+                One-time setup: show your bookmarks bar (Ctrl+Shift+B), then drag this
+                button onto it:{" "}
+                <a
+                  ref={setBookmarkletHref}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toast.message(
+                      "Drag this button onto your bookmarks bar — clicking it here does nothing.",
+                    );
+                  }}
+                  className="ml-1 inline-flex items-center gap-1 rounded-md bg-brand px-2.5 py-1 text-xs font-semibold text-brand-foreground"
+                >
+                  <Bookmark className="h-3.5 w-3.5" /> Send to Eclipse Motors
+                </a>
+              </li>
+              <li>
+                Open the car&apos;s listing on che168 in this browser and wait until the
+                price and mileage show.
+              </li>
+              <li>
+                Click <strong>Send to Eclipse Motors</strong> on your bookmarks bar, then{" "}
+                <strong>Copy for Eclipse Motors</strong> in the box that appears.
+              </li>
+              <li>
+                Come back here, click in the import box above, paste (Ctrl+V), and click
+                Import.
+              </li>
+            </ol>
+          </details>
         </section>
       )}
 

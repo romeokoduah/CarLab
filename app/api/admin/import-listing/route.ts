@@ -3,8 +3,13 @@ import { randomUUID } from "node:crypto";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { requireSuperAdmin } from "@/lib/auth-server";
-import { Che168ImportError, scrapeChe168Listing } from "@/lib/import/che168";
+import {
+  Che168ImportError,
+  importChe168FromPage,
+  scrapeChe168Listing,
+} from "@/lib/import/che168";
 import { DeepSeekImportError } from "@/lib/import/deepseek";
+import { decodePagePayload, PagePayloadError } from "@/lib/import/page-payload";
 import { compressToTarget } from "@/lib/images";
 import { blurPlates } from "@/lib/import/plate-blur";
 import { dbGetSettings } from "@/lib/db/settings";
@@ -58,18 +63,26 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => null);
+  // Either a link for the server to open, or a page the admin already copied
+  // in their own browser with the bookmark (che168 captchas this server).
+  const copiedPage = typeof body?.page === "string" ? body.page : "";
   const url = typeof body?.url === "string" ? body.url.trim() : "";
-  if (!url) {
-    return NextResponse.json({ error: "Paste a che168 listing link." }, { status: 400 });
+  if (!copiedPage && !url) {
+    return NextResponse.json(
+      { error: "Paste a che168 link, or a page copied with the Send to Eclipse Motors bookmark." },
+      { status: 400 },
+    );
   }
 
-  // Scraping now reads the page AND runs the DeepSeek extraction in one step
+  // Both paths read the page AND run the DeepSeek extraction in one step
   // (the Chinese page is authoritative; the English mirror is optional).
   let listing;
   try {
-    listing = await scrapeChe168Listing(url);
+    listing = copiedPage
+      ? await importChe168FromPage(decodePagePayload(copiedPage))
+      : await scrapeChe168Listing(url);
   } catch (e) {
-    if (e instanceof Che168ImportError) {
+    if (e instanceof Che168ImportError || e instanceof PagePayloadError) {
       return NextResponse.json({ error: e.message }, { status: 422 });
     }
     if (e instanceof DeepSeekImportError) {
