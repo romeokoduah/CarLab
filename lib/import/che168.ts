@@ -285,7 +285,17 @@ export async function scrapeChe168Listing(rawUrl: string): Promise<RawListing> {
   }
   const cnUrl = `${url.origin}${url.pathname}`;
 
-  const browser = await chromium.launch();
+  // A browser that cannot start is a server problem, not a che168 one — say so
+  // rather than letting it fall through to "che168 changed its page layout".
+  let browser: Browser;
+  try {
+    browser = await chromium.launch();
+  } catch (e) {
+    console.error("che168 import: headless browser failed to launch:", e);
+    throw new Che168ImportError(
+      `The server's browser couldn't start, so it can't open links right now. ${USE_THE_BOOKMARK}`,
+    );
+  }
   let cn: Awaited<ReturnType<typeof extractCn>>;
   let en: Awaited<ReturnType<typeof extractEn>>;
   try {
