@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Eclipse Motors import helper",
+  "version": "1.0.0",
+  "description": "Reads a che168 listing in your own browser when you import it from the Eclipse Motors admin.",
+  "permissions": ["scripting"],
+  "host_permissions": ["https://*.che168.com/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://eclipsemotors.org/admin*",
+        "https://www.eclipsemotors.org/admin*",
+        "http://localhost/admin*",
+        "http://127.0.0.1/admin*"
+      ],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

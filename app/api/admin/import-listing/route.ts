@@ -63,13 +63,13 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => null);
-  // Either a link for the server to open, or a page the admin already copied
-  // in their own browser with the bookmark (che168 captchas this server).
+  // Either a link for the server to open, or a listing the import helper
+  // already read in the admin's own browser (che168 captchas this server).
   const copiedPage = typeof body?.page === "string" ? body.page : "";
   const url = typeof body?.url === "string" ? body.url.trim() : "";
   if (!copiedPage && !url) {
     return NextResponse.json(
-      { error: "Paste a che168 link, or a page copied with the Send to Eclipse Motors bookmark." },
+      { error: "Paste a che168 listing link." },
       { status: 400 },
     );
   }

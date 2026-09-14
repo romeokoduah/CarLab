@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { X, Plus, RotateCcw, Wand2, Loader2, Bookmark } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { X, Plus, RotateCcw, Wand2, Loader2, Puzzle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,9 +28,12 @@ import {
 import { formatPrice } from "@/lib/currency";
 import { toast } from "sonner";
 import {
-  BOOKMARKLET_HREF,
-  isPagePayload,
-  pagePayloadTitle,
+  detectImportHelper,
+  ImportHelperError,
+  readListingWithHelper,
+} from "@/lib/import/import-helper";
+import {
+  encodePagePayload,
 } from "@/lib/import/page-payload";
 import {
   ALL_MAKES,
@@ -283,31 +286,52 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
     }));
   };
 
-  /** A page copied with the bookmark, rather than a link, is in the import box. */
-  const pagePasted = isPagePayload(importUrl);
-
   /**
-   * React warns on (and newer versions block) `javascript:` hrefs in JSX, so
-   * the bookmark link gets its href set directly on the element.
+   * The import helper extension's version: undefined while checking, null when
+   * it isn't installed. With it, the listing is read in this browser, which
+   * che168 lets through, instead of by the server, which it blocks.
    */
-  const setBookmarkletHref = (el: HTMLAnchorElement | null) => {
-    if (el) el.setAttribute("href", BOOKMARKLET_HREF);
-  };
+  const [helperVersion, setHelperVersion] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (car || role !== "super_admin") return;
+    let live = true;
+    detectImportHelper().then((v) => {
+      if (live) setHelperVersion(v);
+    });
+    return () => {
+      live = false;
+    };
+  }, [car, role]);
 
   const runImport = async () => {
-    const raw = importUrl.trim();
-    if (!raw) {
-      toast.error(
-        "Paste a che168 link, or a page copied with the Send to Eclipse Motors bookmark.",
-      );
+    const link = importUrl.trim();
+    if (!link) {
+      toast.error("Paste a che168 listing link.");
       return;
     }
     setImporting(true);
     try {
+      let body: { url: string } | { page: string } = { url: link };
+      // Installed since the page loaded? Ask again rather than make them reload.
+      const helper = helperVersion ?? (await detectImportHelper(500));
+      if (helper && !helperVersion) setHelperVersion(helper);
+      if (helper) {
+        try {
+          const page = await readListingWithHelper(link, (text) => toast.message(text));
+          body = { page: encodePagePayload(page) };
+        } catch (e) {
+          toast.error(
+            e instanceof ImportHelperError
+              ? e.message
+              : "The import helper couldn't read that listing.",
+          );
+          return;
+        }
+      }
       const res = await fetch("/api/admin/import-listing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isPagePayload(raw) ? { page: raw } : { url: raw }),
+        body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -468,31 +492,13 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
             </span>
           </SectionTitle>
           <div className="flex flex-col gap-2 rounded-2xl border border-border bg-muted/30 p-4 sm:flex-row">
-            {pagePasted ? (
-              <div className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm">
-                <Bookmark className="h-4 w-4 shrink-0 text-brand" />
-                <span className="truncate">
-                  Copied page ready: {pagePayloadTitle(importUrl) || "che168 listing"}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setImportUrl("")}
-                  disabled={importing}
-                  aria-label="Clear the copied page"
-                  className="ml-auto shrink-0 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <Input
-                value={importUrl}
-                onChange={(e) => setImportUrl(e.target.value)}
-                placeholder="Paste a che168 link, or a page copied with the bookmark"
-                disabled={importing}
-                className="flex-1"
-              />
-            )}
+            <Input
+              value={importUrl}
+              onChange={(e) => setImportUrl(e.target.value)}
+              placeholder="Paste a che168 listing link"
+              disabled={importing}
+              className="flex-1"
+            />
             <Button type="button" onClick={runImport} disabled={importing}>
               {importing ? (
                 <>
@@ -510,41 +516,42 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
             confirms, and pulls photos. Nothing saves until you review the fields below
             and click Save.
           </p>
-          <details className="mt-3 rounded-2xl border border-border p-4 text-sm">
-            <summary className="cursor-pointer font-medium">
-              Link import failing? Use the browser bookmark
-            </summary>
-            <ol className="mt-3 list-decimal space-y-2 pl-5 text-muted-foreground">
-              <li>
-                One-time setup: show your bookmarks bar (Ctrl+Shift+B), then drag this
-                button onto it:{" "}
-                <a
-                  ref={setBookmarkletHref}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    toast.message(
-                      "Drag this button onto your bookmarks bar — clicking it here does nothing.",
-                    );
-                  }}
-                  className="ml-1 inline-flex items-center gap-1 rounded-md bg-brand px-2.5 py-1 text-xs font-semibold text-brand-foreground"
-                >
-                  <Bookmark className="h-3.5 w-3.5" /> Send to Eclipse Motors
-                </a>
-              </li>
-              <li>
-                Open the car&apos;s listing on che168 in this browser and wait until the
-                price and mileage show.
-              </li>
-              <li>
-                Click <strong>Send to Eclipse Motors</strong> on your bookmarks bar, then{" "}
-                <strong>Copy for Eclipse Motors</strong> in the box that appears.
-              </li>
-              <li>
-                Come back here, click in the import box above, paste (Ctrl+V), and click
+          {helperVersion && (
+            <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Puzzle className="h-3.5 w-3.5 shrink-0 text-brand" />
+              Import helper connected. The listing opens in a new tab for a few seconds
+              while it&apos;s read, then you&apos;re brought back here.
+            </p>
+          )}
+          {helperVersion === null && (
+            <details className="mt-3 rounded-2xl border border-border p-4 text-sm">
+              <summary className="cursor-pointer font-medium">
+                Set up the import helper (one time, Chrome or Edge on a computer)
+              </summary>
+              <p className="mt-3 text-muted-foreground">
+                che168 blocks this site&apos;s server from opening listings. The helper reads
+                them in your own browser instead, so you still just paste the link and click
                 Import.
-              </li>
-            </ol>
-          </details>
+              </p>
+              <ol className="mt-3 list-decimal space-y-2 pl-5 text-muted-foreground">
+                <li>
+                  Put the <code>browser-extension/eclipse-motors-importer</code> folder from
+                  the CarLab project on this computer.
+                </li>
+                <li>
+                  Open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>)
+                  and switch on <strong>Developer mode</strong>.
+                </li>
+                <li>
+                  Click <strong>Load unpacked</strong> and choose that folder.
+                </li>
+                <li>
+                  Reload this page. It should say <strong>Import helper connected</strong>{" "}
+                  under the import box.
+                </li>
+              </ol>
+            </details>
+          )}
         </section>
       )}
 
