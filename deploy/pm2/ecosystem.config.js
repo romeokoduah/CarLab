@@ -6,12 +6,16 @@ module.exports = {
     {
       name: "eclipse-motors",
       cwd: "/var/www/CarLab",
-      script: "npm",
-      // "-- -H 127.0.0.1" and not just the HOSTNAME env var: `next start` only
+      // Next's own entry point run by node, not `npm start`: npm runs scripts
+      // through /bin/sh, and when the attacker zeroed /usr/bin/dash every
+      // restart of this app crash-looped and the site went down (2026-09-15).
+      script: "node_modules/next/dist/bin/next",
+      interpreter: "node",
+      // "-H 127.0.0.1" and not just the HOSTNAME env var: `next start` only
       // reads HOSTNAME in standalone mode. In this (non-standalone) setup it
       // ignores it and binds 0.0.0.0 regardless, which is exactly what we are
-      // trying to stop. npm forwards everything after `--` to next.
-      args: "start -- -H 127.0.0.1",
+      // trying to stop.
+      args: "start -H 127.0.0.1 -p 3001",
       env: {
         NODE_ENV: "production",
         PORT: 3001,
