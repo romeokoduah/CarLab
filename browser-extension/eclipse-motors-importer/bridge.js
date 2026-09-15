@@ -1,13 +1,26 @@
 /**
- * Runs on the Eclipse Motors admin page and relays between the page
+ * Runs on the Eclipse Motors site and relays between the admin page
  * (lib/import/import-helper.ts, over window.postMessage) and background.js.
+ *
+ * It can be added to a tab twice: once when the page loads, and again by
+ * background.js when the helper is installed or reloaded. A copy left over from
+ * before a reload can no longer reach background.js, so it stays silent and
+ * lets the new copy answer.
  */
 (() => {
   const TAG = "eclipse-motors-import-helper";
+  const live = () => !!chrome.runtime?.id;
+  if (globalThis.__emImportBridgeLive?.()) return;
+  globalThis.__emImportBridgeLive = live;
+
   const version = chrome.runtime.getManifest().version;
   const post = (m) => window.postMessage({ tag: TAG, dir: "from-helper", ...m }, location.origin);
 
-  window.addEventListener("message", (e) => {
+  const onMessage = (e) => {
+    if (!live()) {
+      window.removeEventListener("message", onMessage);
+      return;
+    }
     if (e.source !== window || e.origin !== location.origin) return;
     const m = e.data;
     if (!m || m.tag !== TAG || m.dir !== "to-helper") return;
@@ -27,7 +40,8 @@
           });
         });
     }
-  });
+  };
+  window.addEventListener("message", onMessage);
 
   chrome.runtime.onMessage.addListener((m) => {
     if (m?.type === "status") post({ type: "status", id: m.id, text: m.text });

@@ -35,7 +35,7 @@ import { extractListing } from "@/lib/import/deepseek";
 import { LISTING_MARKERS, type PagePayload } from "@/lib/import/page-payload";
 
 const USE_THE_HELPER =
-  "Set up the import helper (steps under the import box) so the listing is read in your own browser, then click Import again.";
+  "The import helper didn't answer on this page, so the server tried instead. If the helper is installed, reload this page (it should then say \"Import helper connected\") and click Import again; if not, follow the setup steps under the import box.";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";

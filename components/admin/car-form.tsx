@@ -550,6 +550,11 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
                   under the import box.
                 </li>
               </ol>
+              <p className="mt-3 text-muted-foreground">
+                Already installed and still not connected? Check it&apos;s switched on at{" "}
+                <code>chrome://extensions</code>, in the same browser and profile you&apos;re
+                using now, then reload this page.
+              </p>
             </details>
           )}
         </section>

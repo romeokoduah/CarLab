@@ -18,6 +18,21 @@ const CHECK_TIMEOUT_MS = 180_000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Chrome only adds content scripts to pages loaded after the helper is
+ * installed or reloaded, so an admin tab that was already open never heard of
+ * it and Import quietly fell back to the server. Add the bridge to those tabs
+ * now instead of relying on the admin to reload them.
+ */
+chrome.runtime.onInstalled.addListener(async () => {
+  const { content_scripts: [{ matches }] } = chrome.runtime.getManifest();
+  for (const tab of await chrome.tabs.query({ url: matches })) {
+    chrome.scripting
+      .executeScript({ target: { tabId: tab.id }, files: ["bridge.js"] })
+      .catch(() => {}); // a tab still loading gets the bridge from its manifest entry
+  }
+});
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id || !sender.tab || msg?.type !== "read") return false;
   readListing(msg.url, sender.tab, msg.id).then(sendResponse, (e) =>
