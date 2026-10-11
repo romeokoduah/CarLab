@@ -56,6 +56,12 @@ export interface Car {
   horsepower?: number;
   previousOwners?: number;
   registrationStatus?: RegistrationStatus;
+  /**
+   * The full specification sheet shown under "Full specifications" on the
+   * car page — dimensions, engine, chassis and the like, beyond the headline
+   * fields above. Filled by the che168 importer, editable in the admin form.
+   */
+  specs?: CarSpecGroup[];
 
   // ── Landed-cost breakdown (admin only; see lib/pricing.ts) ──
   // Stored so a saved listing can always explain how its price was reached,
@@ -81,6 +87,16 @@ export interface Car {
    * admin reopen the listing to actually buy the car once a customer commits.
    */
   sourceUrl?: string;
+}
+
+export interface CarSpecRow {
+  label: string;
+  value: string;
+}
+
+export interface CarSpecGroup {
+  title: string;
+  rows: CarSpecRow[];
 }
 
 export type DiscountType = "percent" | "fixed";

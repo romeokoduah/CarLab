@@ -79,3 +79,17 @@ test("non-JSON and non-record replies are errors", () => {
   assert.throws(() => parseExtraction(JSON.stringify(["a", "b"])), DeepSeekImportError);
   assert.throws(() => parseExtraction(JSON.stringify({ note: "no listing here" })), DeepSeekImportError);
 });
+
+test("spec-term translations come back as a plain string map", () => {
+  const out = parseExtraction(
+    JSON.stringify({
+      make: "Kia",
+      model: "Seltos",
+      description: "A Kia.",
+      features: [],
+      specTerms: { 空气悬架: "Air suspension", 坏: 5, 空: "  " },
+    }),
+  );
+  assert.deepEqual(out.specTerms, { 空气悬架: "Air suspension" });
+  assert.equal(parseExtraction(JSON.stringify({ make: "Kia", model: "K5", description: "x", features: [] })).specTerms, undefined);
+});

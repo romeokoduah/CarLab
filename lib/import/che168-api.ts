@@ -187,6 +187,17 @@ export function carInfoText(feeds: ListingFeeds, srcId: string): string {
     .join("\n");
 }
 
+/** Every spec-sheet row that has a value, by its Chinese name (first wins). */
+export function specRows(feeds: ListingFeeds, srcId: string): Map<string, string> {
+  const rows = new Map<string, string>();
+  for (const g of paramGroups(feeds.paramtypeitems, srcId)) {
+    for (const { name, content } of g.data) {
+      if (content && content !== "-" && !rows.has(name)) rows.set(name, content);
+    }
+  }
+  return rows;
+}
+
 /** Facts the feeds state outright — read literally, never left to the AI. */
 export interface FeedFacts {
   carRmb?: number;
@@ -228,12 +239,7 @@ export function feedFacts(feeds: ListingFeeds, srcId: string): FeedFacts {
     }
   }
 
-  const rows = new Map<string, string>();
-  for (const g of paramGroups(feeds.paramtypeitems, srcId)) {
-    for (const { name, content } of g.data) {
-      if (content && content !== "-" && !rows.has(name)) rows.set(name, content);
-    }
-  }
+  const rows = specRows(feeds, srcId);
   if (!rows.size) return facts;
 
   facts.seats = positiveInt(rows.get("座位数(个)"));

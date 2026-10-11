@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ImageManager } from "@/components/admin/image-manager";
+import { SpecsEditor } from "@/components/admin/specs-editor";
+import { normalizeSpecs } from "@/lib/specs";
 import { useStore } from "@/lib/store";
 import {
   LOGISTICS_RMB,
@@ -45,6 +47,7 @@ import type {
   BodyType,
   Car,
   CarImage,
+  CarSpecGroup,
   CarStatus,
   Condition,
   Drivetrain,
@@ -97,6 +100,8 @@ interface FormState {
   verified: boolean;
   description: string;
   features: string[];
+  /** The "Full specifications" sheet. */
+  specs: CarSpecGroup[];
   videoUrl: string;
   images: CarImage[];
   // extended
@@ -144,6 +149,7 @@ function initFrom(car: Car | undefined, rates: Rates): FormState {
     verified: car?.verified ?? true,
     description: car?.description ?? "",
     features: car?.features ?? [],
+    specs: car?.specs ?? [],
     videoUrl: car?.videoUrl ?? "",
     images: car?.images ?? [],
     engineCapacity: car?.engineCapacity ?? "",
@@ -358,6 +364,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
         previousOwners: d.previousOwners != null ? String(d.previousOwners) : prev.previousOwners,
         description: d.description ?? prev.description,
         features: d.features ?? prev.features,
+        specs: d.specs?.length ? d.specs : prev.specs,
         images: d.images ?? prev.images,
         priceGhs: d.priceGhs ?? prev.priceGhs,
         costCarRmb: str(d.costCarRmb),
@@ -456,6 +463,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
       verified: f.verified,
       description: f.description,
       features: f.features,
+      specs: normalizeSpecs(f.specs),
       videoUrl: f.videoUrl || undefined,
       images: f.images.map((im, i) => ({ ...im, position: i })),
       engineCapacity: f.engineCapacity.trim() || undefined,
@@ -1021,6 +1029,18 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
             </div>
           )}
         </div>
+      </section>
+
+      {/* Full specifications */}
+      <section>
+        <SectionTitle>
+          Full specifications
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            shown under Features on the car page
+            {imported && f.specs.length > 0 ? " · auto-filled, check before saving" : ""}
+          </span>
+        </SectionTitle>
+        <SpecsEditor value={f.specs} onChange={(next) => set("specs", next)} />
       </section>
 
       {/* Video */}

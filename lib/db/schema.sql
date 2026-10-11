@@ -41,6 +41,9 @@ ALTER TABLE cars ADD COLUMN IF NOT EXISTS cost_rates_pinned boolean NOT NULL DEF
 -- Original source listing (e.g. a che168.com link), when imported from one.
 -- Admin-only, like the cost breakdown above — never shown to buyers.
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS source_url text;
+-- Full specification sheet: [{title, rows: [{label, value}]}]. Public, shown
+-- under "Full specifications" on the car page (lib/specs.ts normalizes it).
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS specs jsonb NOT NULL DEFAULT '[]';
 
 CREATE TABLE IF NOT EXISTS car_images (
   id       text PRIMARY KEY,

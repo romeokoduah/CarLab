@@ -42,6 +42,8 @@ import {
   specSheetText,
   type ListingFeeds,
 } from "@/lib/import/che168-api";
+import { buildSpecGroups, specTermsToTranslate } from "@/lib/import/che168-specs";
+import type { CarSpecGroup } from "@/lib/types";
 import { extractListing } from "@/lib/import/deepseek";
 import { LISTING_MARKERS, type PagePayload } from "@/lib/import/page-payload";
 
@@ -62,6 +64,8 @@ export interface RawListing extends ReconciledListing {
   imageUrls: string[];
   /** True when the English mirror was alive and contributed specs. */
   enMirrorUsed: boolean;
+  /** The "Full specifications" sheet, when che168's spec feed was captured. */
+  specs: CarSpecGroup[];
 }
 
 export class Che168ImportError extends Error {}
@@ -449,6 +453,7 @@ async function buildListing({
     cnText: cn.text,
     enText: enText || undefined,
     specText: specText || undefined,
+    translateTerms: specTermsToTranslate(feeds, srcId),
     known: {
       carRmb: det.carRmb,
       mileageKm: det.mileageKm,
@@ -471,6 +476,7 @@ async function buildListing({
     srcId,
     imageUrls,
     enMirrorUsed: !!en?.alive,
+    specs: buildSpecGroups(feeds, srcId, ai.specTerms),
   };
 }
 

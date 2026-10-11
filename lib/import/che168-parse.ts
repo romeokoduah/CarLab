@@ -317,6 +317,8 @@ export interface ExtractedListing {
   carRmb?: number;
   description: string;
   features: string[];
+  /** DeepSeek's translations of spec-sheet terms the glossary lacks. */
+  specTerms?: Record<string, string>;
 }
 
 /** What the scraper reads with regex — the hard numbers that must be exact. */

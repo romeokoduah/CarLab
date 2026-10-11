@@ -142,6 +142,7 @@ export async function POST(req: Request) {
       previousOwners: listing.previousOwners,
       description: listing.description,
       features: listing.features,
+      specs: listing.specs,
       images,
       priceGhs,
       costCarRmb: breakdown.carRmb,

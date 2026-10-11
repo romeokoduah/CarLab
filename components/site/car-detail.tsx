@@ -288,6 +288,36 @@ export function CarDetail({
               </ul>
             </div>
           )}
+
+          {/* Full specifications */}
+          {car.specs && car.specs.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-lg font-semibold">Full specifications</h2>
+              <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                {car.specs.map((group) => (
+                  <section
+                    key={group.title}
+                    className="min-w-0 rounded-xl border border-border bg-card p-4"
+                  >
+                    <h3 className="text-sm font-semibold">{group.title}</h3>
+                    <dl className="mt-2 divide-y divide-border text-sm">
+                      {group.rows.map((row) => (
+                        <div
+                          key={row.label}
+                          className="flex items-baseline justify-between gap-4 py-2"
+                        >
+                          <dt className="shrink-0 text-muted-foreground">{row.label}</dt>
+                          <dd className="min-w-0 break-words text-right font-medium">
+                            {row.value}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </section>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
