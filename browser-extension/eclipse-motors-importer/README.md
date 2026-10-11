@@ -19,8 +19,11 @@ After changing any file here, click the reload icon on the extension's card.
   (`lib/import/import-helper.ts`) and the background worker.
 - `background.js` opens the link in a new tab, waits until the listing shows its
   mileage/registration text (or for you to finish che168's security check), scrolls
-  once so the gallery loads, reads the page text and 900x675 photo links, closes
+  once so the gallery loads, reads the page text and gallery photo links, closes
   the tab and returns them.
+- An English-mirror link (`global.che168.com/en/detail/<id>`) is opened as the
+  Chinese mobile page for the same car (`m.che168.com/cardetail/index?infoid=<id>`),
+  which carries the RMB price, mileage and transfer count the mirror lacks.
 - The admin page posts that to `/api/admin/import-listing` as `{ page }`, which
   runs the same parsing, DeepSeek and pricing as a server-side read.
 

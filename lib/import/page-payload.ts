@@ -15,8 +15,14 @@
 
 export const PAGE_PAYLOAD_PREFIX = "EMIMPORT1:";
 
-/** Text only a loaded listing shows: mileage, registration date, transfers. */
-export const LISTING_MARKERS = /表显里程|上牌时间|过户次数/;
+/**
+ * Text only a loaded listing shows: mileage, registration date or transfers
+ * WITH a value. The desktop page puts the value after the label
+ * (表显里程6.4万公里), the mobile page before it (0.01万公里\n表显里程) — and
+ * the mobile page shows the bare labels with "-" values while still loading.
+ */
+export const LISTING_MARKERS =
+  /表显里程\s*\d|\d\s*万?公里\s*表显里程|上牌时间\s*\d|\d\s*上牌时间|过户次数\s*\d|\d\s*次\s*过户次数/;
 
 const MAX_TEXT = 300_000;
 const MAX_IMAGES = 200;

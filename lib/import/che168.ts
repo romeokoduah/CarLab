@@ -17,8 +17,11 @@
  */
 import { chromium, type Browser, type Page } from "playwright";
 import {
+  che168ReadUrl,
   Che168ParseError,
   field,
+  focusMobileListing,
+  isMobileListingUrl,
   parseBreadcrumbMakeModel,
   parseCnMileage,
   parseCnPrice,
@@ -39,6 +42,8 @@ const USE_THE_HELPER =
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+const MOBILE_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
 
 const SPEC_TAB_RE =
   /^(Passive Safety|Active Safety|Driving & Handling|Driving Hardware|Driving Functions|Exterior & Anti-Theft|Exterior Lighting|Sunroof & Glass|Exterior Mirrors|Connectivity & Intelligence|Steering Wheel & Interior Rearview Mirror|Interior Charging|Seat Features|Audio & Interior Lighting|Air Conditioning & Refrigerator)$/;
@@ -76,7 +81,7 @@ async function isEdgeOneChallenge(page: Page): Promise<boolean> {
   const text = await page
     .evaluate(() => document.body?.innerText ?? "")
     .catch(() => "");
-  return /Verifying the safety of the connection|Protected by Tencent Cloud EdgeOne/i.test(text);
+  return /Verifying the safety of the connection|正在验证连接安全性|Protected by Tencent Cloud EdgeOne/i.test(text);
 }
 
 /**
@@ -87,7 +92,7 @@ async function isEdgeOneChallenge(page: Page): Promise<boolean> {
  * reload — "Execution context was destroyed", or a null body. waitForFunction
  * re-arms across the navigation, so it waits out the reload instead.
  */
-async function waitForListingText(page: Page) {
+async function waitForListingText(page: Page, timeout: number) {
   try {
     // Also stop waiting the moment che168 redirects to its own captcha page —
     // it does that to this server within seconds, and no amount of waiting
@@ -97,7 +102,7 @@ async function waitForListingText(page: Page) {
         /captcha/i.test(location.pathname) ||
         (!!document.body && new RegExp(markers).test(document.body.innerText)),
       LISTING_MARKERS.source,
-      { timeout: 30000 },
+      { timeout, polling: 500 },
     );
   } catch {
     if (await isEdgeOneChallenge(page)) {
@@ -120,24 +125,36 @@ const isNavigationRace = (e: unknown) =>
   /Execution context was destroyed|because of a navigation|Cannot read properties of null/i.test(String(e));
 
 async function extractCn(browser: Browser, url: string) {
-  const page = await browser.newPage({
-    viewport: { width: 1440, height: 1200 },
-    userAgent: UA,
-    locale: "zh-CN",
-  });
+  // The mobile page is built for phones: open it as one, and give it longer —
+  // it fills its listing in client-side and has taken 70–80s to do so.
+  const mobile = isMobileListingUrl(url);
+  const page = await browser.newPage(
+    mobile
+      ? {
+          viewport: { width: 390, height: 844 },
+          userAgent: MOBILE_UA,
+          isMobile: true,
+          hasTouch: true,
+          deviceScaleFactor: 3,
+          locale: "zh-CN",
+        }
+      : { viewport: { width: 1440, height: 1200 }, userAgent: UA, locale: "zh-CN" },
+  );
   try {
     // We only ever read text and img ATTRIBUTES off this page, so fetching the
     // photos themselves (and fonts/video) just spends time. The attributes are
     // in the DOM either way; the actual photos are downloaded later, in
     // parallel, by the import route.
-    await blockHeavyResources(page);
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
+    // Not on the mobile page: its gallery is React Native Web, whose <img>
+    // only gets its link once the photo has actually loaded.
+    if (!mobile) await blockHeavyResources(page);
+    await page.goto(url, mobile ? { waitUntil: "commit", timeout: 60000 } : { waitUntil: "domcontentloaded", timeout: 45000 });
     // Price/mileage text and every photo URL are present as soon as the
     // listing text is, once images are not competing for the connection. If
     // the self-reload lands mid-read, wait for the new document and read again.
     for (let attempt = 1; ; attempt++) {
       try {
-        await waitForListingText(page);
+        await waitForListingText(page, mobile ? 120000 : 30000);
         await page.evaluate(async () => {
           for (let y = 0; y < document.body.scrollHeight; y += 600) {
             window.scrollTo(0, y);
@@ -148,14 +165,25 @@ async function extractCn(browser: Browser, url: string) {
         const text: string = await page.evaluate(() =>
           document.body.innerText.replace(/\n{2,}/g, "\n"),
         );
-        const images: string[] = await page.evaluate(() =>
-          [...new Set(
-            [...document.querySelectorAll("img")]
+        // Desktop: the 900x675 gallery. Mobile: the 1400x0 photo carousel,
+        // minus the clone slides it adds at each end to loop (the dealer's
+        // other cars on that page are 640x480).
+        const images: string[] = await page.evaluate((isMobile) => {
+          let imgs = [...document.querySelectorAll("img")];
+          if (isMobile) {
+            const slides = [
+              ...document.querySelectorAll<HTMLImageElement>(".swiper-slide:not(.swiper-slide-duplicate) img"),
+            ];
+            if (slides.length) imgs = slides;
+          }
+          const size = isMobile ? /1400x0_/ : /900x675/;
+          return [...new Set(
+            imgs
               .flatMap((el) => [el.src, el.getAttribute("data-src"), el.getAttribute("data-original")])
-              .filter((s): s is string => !!s && /autoimg\.cn/.test(s) && /900x675/.test(s))
+              .filter((s): s is string => !!s && /autoimg\.cn/.test(s) && size.test(s))
               .map((s) => s.split("?")[0]),
-          )],
-        );
+          )];
+        }, mobile);
         return { text, images };
       } catch (e) {
         if (attempt >= 3 || !isNavigationRace(e)) throw e;
@@ -280,10 +308,15 @@ export async function scrapeChe168Listing(rawUrl: string): Promise<RawListing> {
     throw new Che168ImportError("Only che168.com listing links are supported.");
   }
   const srcId = parseSrcId(rawUrl);
-  if (!srcId) {
+  const readUrl = che168ReadUrl(rawUrl);
+  if (!srcId || !readUrl) {
     throw new Che168ImportError("Could not find a car id in that link.");
   }
-  const cnUrl = `${url.origin}${url.pathname}`;
+  // An English-mirror link is read from the Chinese mobile page (readUrl);
+  // a mobile link keeps its ?infoid=, the only place its car id is.
+  const cnUrl = isMobileListingUrl(readUrl)
+    ? readUrl
+    : `${new URL(readUrl).origin}${new URL(readUrl).pathname}`;
 
   // A browser that cannot start is a server problem, not a che168 one — say so
   // rather than letting it fall through to "che168 changed its page layout".
@@ -308,7 +341,7 @@ export async function scrapeChe168Listing(rawUrl: string): Promise<RawListing> {
     await browser.close();
   }
 
-  return buildListing({ rawUrl, srcId, cn, en });
+  return buildListing({ rawUrl: cnUrl, srcId, cn, en });
 }
 
 /**
@@ -349,6 +382,7 @@ async function buildListing({
   cn: { text: string; images: string[] };
   en: Awaited<ReturnType<typeof extractEn>>;
 }): Promise<RawListing> {
+  if (isMobileListingUrl(rawUrl)) cn = { ...cn, text: focusMobileListing(cn.text) };
   // Deterministic reads from the Chinese page — the hard numbers.
   let carRmb: number | undefined;
   try {

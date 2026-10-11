@@ -12,7 +12,8 @@ import {
   scrollListingTo,
 } from "./listing.js";
 
-const LOAD_TIMEOUT_MS = 45_000;
+/** The mobile listing page fills itself in client-side and has taken 70–80s. */
+const LOAD_TIMEOUT_MS = 120_000;
 /** Once che168 shows its security check, time for the admin to finish it by hand. */
 const CHECK_TIMEOUT_MS = 180_000;
 

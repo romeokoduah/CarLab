@@ -16,16 +16,21 @@ export class Che168ParseError extends Error {}
  *   www.che168.com/dealer/676896/59072492.html   (dealer listing)
  *   www.che168.com/<city>/59072492.html          (city listing)
  *   global.che168.com/en/detail/59072492         (English mirror)
+ *   m.che168.com/cardetail/index?infoid=59072492 (mobile listing)
  * plus a tail of ?query and #hash junk. We take the last id-shaped run in the
  * path so a new link shape keeps working without a code change.
  */
 export function parseSrcId(rawUrl: string): string | null {
   let path: string;
+  let infoid: string | null;
   try {
-    path = new URL(rawUrl).pathname;
+    const u = new URL(rawUrl);
+    path = u.pathname;
+    infoid = u.searchParams.get("infoid");
   } catch {
     return null;
   }
+  if (infoid && /^\d{5,}$/.test(infoid)) return infoid;
   // `/detail/<id>` (EN) or `<id>.html` (CN) first — the precise, known forms.
   const detail = path.match(/\/detail\/(\d{5,})/);
   if (detail) return detail[1];
@@ -36,6 +41,70 @@ export function parseSrcId(rawUrl: string): string | null {
   return all?.length ? all[all.length - 1] : null;
 }
 
+/**
+ * The page to read for a pasted che168 link, or null when it isn't one.
+ *
+ * The English mirror (global.che168.com/en/detail/<id>) has no Chinese listing
+ * text — no RMB price, no transfer count — and sits behind a verification
+ * page, so a pasted mirror link is read from the Chinese mobile page for the
+ * same car, m.che168.com/cardetail/index?infoid=<id>. Every other che168 link
+ * is read as pasted. The import helper's che168ListingUrl
+ * (browser-extension/eclipse-motors-importer/listing.js) does the same; a test
+ * keeps the two in step.
+ */
+export function che168ReadUrl(rawUrl: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(rawUrl.trim());
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+  if (!/(^|\.)che168\.com$/.test(u.hostname)) return null;
+  if (u.username || u.password || u.port) return null;
+  if (
+    u.hostname === "global.che168.com" ||
+    (u.hostname === "m.che168.com" && u.searchParams.has("infoid"))
+  ) {
+    const id = parseSrcId(u.toString());
+    return id ? mobileListingUrl(id) : null;
+  }
+  if (!/\d{5,}/.test(u.pathname)) return null;
+  u.protocol = "https:";
+  return u.toString();
+}
+
+export function mobileListingUrl(srcId: string): string {
+  return `https://m.che168.com/cardetail/index?infoid=${srcId}`;
+}
+
+export function isMobileListingUrl(url: string): boolean {
+  try {
+    return new URL(url).hostname === "m.che168.com";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The mobile listing page with the other cars taken out.
+ *
+ * Around the car itself, the mobile page shows the dealer's other stock (a
+ * strip under the photos and a "本店在售" list), a "全国同款比价" price
+ * comparison, a "车辆PK" side-by-side and a closing disclaimer — all full of
+ * other cars' prices, years and mileages for DeepSeek to mistake for this one.
+ * Each section is cut only between its own heading and the heading after it,
+ * so a layout change leaves text in rather than cutting the car out.
+ */
+export function focusMobileListing(text: string): string {
+  return text
+    .replace(/\n相册\n[\s\S]*?\n全部\n\d+辆\n/, "\n相册\n")
+    .replace(/\n全国同款比价\n[\s\S]*?(?=\n(?:卖家说|大家都在问)\n)/, "")
+    .replace(/\n本店在售\n[\s\S]*?(?=\n购车方案\n)/, "")
+    .replace(/\n车辆PK\n[\s\S]*?(?=\n以旧换新\n)/, "")
+    .replace(/\n本页面可能含有广告信息[\s\S]*$/, "");
+}
+
 /** Reads a `Label\nValue` pair out of the English page's details block. */
 export function field(block: string, label: string): string {
   const re = new RegExp(`${label}\\n([^\\n]*)`, "i");
@@ -43,6 +112,9 @@ export function field(block: string, label: string): string {
 }
 
 export function parseCnPrice(text: string): number {
+  // Mobile page: "当前报价\n10\n万", else its headline price label.
+  const mobile = text.match(/(?:当前报价|活动价|一口价)\s*([\d.]+)\s*万/);
+  if (mobile) return Math.round(parseFloat(mobile[1]) * 10000);
   const wan = text.match(/¥\s*([\d.]+)\s*万/);
   if (wan) return Math.round(parseFloat(wan[1]) * 10000);
   const plain = text.match(/¥\s*([\d,]+)(?!\s*万)/);
@@ -55,17 +127,23 @@ export function parseCnMileage(text: string): number | undefined {
   if (wan) return Math.round(parseFloat(wan[1]) * 10000);
   const plain = text.match(/表显里程([\d.]+)公里/);
   if (plain) return Math.round(parseFloat(plain[1]));
+  // Mobile page: the value comes first, "0.01万公里\n表显里程".
+  const mWan = text.match(/([\d.]+)万公里\s*表显里程/);
+  if (mWan) return Math.round(parseFloat(mWan[1]) * 10000);
+  const mPlain = text.match(/([\d.]+)公里\s*表显里程/);
+  if (mPlain) return Math.round(parseFloat(mPlain[1]));
   return undefined;
 }
 
 export function parseCnTransfers(text: string): number {
-  const m = text.match(/过户次数(\d+)次/);
+  const m = text.match(/过户次数(\d+)次/) ?? text.match(/(\d+)次\s*过户次数/);
   return m ? parseInt(m[1], 10) : 0;
 }
 
 /** First-registration year from the Chinese archive (上牌时间2023年10月). */
 export function parseCnYear(text: string): number | undefined {
-  const m = text.match(/上牌时间\s*(\d{4})年/);
+  // Desktop "上牌时间2023年10月"; mobile "2026-04\n上牌时间".
+  const m = text.match(/上牌时间\s*(\d{4})年/) ?? text.match(/(\d{4})-\d{1,2}\s*上牌时间/);
   const y = m ? parseInt(m[1], 10) : NaN;
   return y >= 1980 && y <= 2100 ? y : undefined;
 }
