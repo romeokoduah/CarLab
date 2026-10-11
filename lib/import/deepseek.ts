@@ -75,6 +75,7 @@ FIELD RULES:
 DESCRIPTION + FEATURES (for the public storefront):
 - description: SHORT, 1–2 tight paragraphs. State year, make, model, trim, mileage and colour, then the standout equipment. NO filler, NO invented backstory.
 - features: array of short English feature names actually supported by the text. In the English config sheet, "●" means fitted and "-" means NOT fitted — never list a "-" item. Dealer highlight tags are fitted. No duplicates.
+- When a FACTORY SPEC SHEET is given, it is this car's own che168 parameter sheet and the best source for every spec field. Its equipment sections list ONLY what is fitted (optional extras and absent items were already removed), so turn those rows into the feature list — be thorough: safety, driver assistance, cameras/parking, lighting, comfort, seats, climate, infotainment and connectivity each belong in it, written as a buyer would read them (e.g. "360° camera", "10.25-inch touchscreen", "Keyless start", "Electronic parking brake", "6 airbags" only when the airbag rows add up to it). Use the spec rows (dimensions, engine, gearbox, suspension, brakes, tyres) for the fields and the description, not as features.
 - NEVER mention a Chinese city/province/region, the dealer's name, "China" as a sourcing detail, or a manufacturer suggested retail price. This is a reseller storefront — keep provenance out of the copy.
 
 Respond with ONLY a JSON object with exactly these keys: make, model, trim, year, mileageKm, colour, bodyType, fuel, transmission, drivetrain, seats, doors, cylinders, horsepower, engineCapacity, carRmb, description, features.`;
@@ -92,6 +93,8 @@ export interface KnownFacts {
 export async function extractListing(input: {
   cnText: string;
   enText?: string;
+  /** che168's own record + parameter sheet for this car (lib/import/che168-api.ts). */
+  specText?: string;
   known: KnownFacts;
 }): Promise<ExtractedListing> {
   const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -113,7 +116,7 @@ ${knownLines.length ? knownLines.join("\n") : "(none)"}
 ── CHINESE DEALER PAGE ──
 ${input.cnText.slice(0, 7000)}
 
-${input.enText ? `── ENGLISH MIRROR + CONFIG SHEET ──\n${input.enText.slice(0, 7000)}` : "(English mirror unavailable — extract everything from the Chinese page above.)"}`;
+${input.enText ? `── ENGLISH MIRROR + CONFIG SHEET ──\n${input.enText.slice(0, 7000)}` : "(English mirror unavailable — extract everything from the Chinese page above.)"}${input.specText ? `\n\n── FACTORY SPEC SHEET (this car's che168 record; equipment rows are fitted) ──\n${input.specText.slice(0, 9000)}` : ""}`;
 
   // The body read is inside the try on purpose: with a reasoning model that is
   // where the wait actually happens, so that is where a timeout will fire.

@@ -331,6 +331,15 @@ export interface DeterministicFacts {
   trim?: string;
   /** English colour, if the EN mirror was alive. */
   colour?: string;
+  /** Stated outright on che168's spec sheet (lib/import/che168-api.ts). */
+  fuel?: Fuel;
+  transmission?: Transmission;
+  drivetrain?: Drivetrain;
+  seats?: number;
+  doors?: number;
+  cylinders?: number;
+  horsepower?: number;
+  engineCapacity?: string;
 }
 
 export interface ReconciledListing {
@@ -369,8 +378,9 @@ const posInt = (n: unknown): number | undefined =>
  * it succeeded, with the AI only as a fallback. The make and model prefer the
  * English breadcrumb (reliable when present, e.g. sorts sub-brands correctly)
  * and fall back to the AI, which is essential when the English mirror is dead
- * and only the Chinese page describes the car. Everything descriptive is the
- * AI's, since it read the whole page; deterministic EN values are the backup.
+ * and only the Chinese page describes the car. Engine, power, seats, doors,
+ * drivetrain, fuel and gearbox come from che168's spec sheet when it was
+ * captured, else from the AI. Everything descriptive is the AI's.
  */
 export function reconcileListing(
   det: DeterministicFacts,
@@ -401,14 +411,15 @@ export function reconcileListing(
     previousOwners: det.previousOwners,
     carRmb,
     bodyType: oneOf(ai.bodyType, BODY_TYPES) ?? "SUV",
-    fuel: oneOf(ai.fuel, FUELS) ?? "Petrol",
-    transmission: oneOf(ai.transmission, TRANSMISSIONS) ?? "Automatic",
-    drivetrain: oneOf(ai.drivetrain, DRIVETRAINS),
-    seats: posInt(ai.seats),
-    doors: posInt(ai.doors),
-    cylinders: posInt(ai.cylinders),
-    horsepower: posInt(ai.horsepower),
-    engineCapacity: ai.engineCapacity?.trim() || undefined,
+    // A value the spec sheet states outright beats the AI's reading of it.
+    fuel: det.fuel ?? oneOf(ai.fuel, FUELS) ?? "Petrol",
+    transmission: det.transmission ?? oneOf(ai.transmission, TRANSMISSIONS) ?? "Automatic",
+    drivetrain: det.drivetrain ?? oneOf(ai.drivetrain, DRIVETRAINS),
+    seats: det.seats ?? posInt(ai.seats),
+    doors: det.doors ?? posInt(ai.doors),
+    cylinders: det.cylinders ?? posInt(ai.cylinders),
+    horsepower: det.horsepower ?? posInt(ai.horsepower),
+    engineCapacity: det.engineCapacity ?? (ai.engineCapacity?.trim() || undefined),
     description:
       ai.description.trim() ||
       fallbackDescription({ year, make, model, trim, mileageKm, colour }),

@@ -13,6 +13,8 @@
  * server-only may be imported here.
  */
 
+import { FEED_NAMES, MAX_FEED_CHARS, type ListingFeeds } from "@/lib/import/che168-api";
+
 export const PAGE_PAYLOAD_PREFIX = "EMIMPORT1:";
 
 /**
@@ -32,6 +34,8 @@ export interface PagePayload {
   title: string;
   text: string;
   images: string[];
+  /** che168's own data feeds for the listing, re-read by the helper (optional). */
+  feeds?: ListingFeeds;
 }
 
 export class PagePayloadError extends Error {}
@@ -104,10 +108,20 @@ export function decodePagePayload(raw: string): PagePayload {
     if (images.length >= MAX_IMAGES) break;
   }
 
+  // Only JSON text is kept; it is parsed, never fetched or executed, and
+  // che168-api.ts drops any response that isn't about this listing.
+  const feeds: ListingFeeds = {};
+  const rawFeeds = typeof d.feeds === "object" && d.feeds !== null ? (d.feeds as Record<string, unknown>) : {};
+  for (const name of FEED_NAMES) {
+    const body = rawFeeds[name];
+    if (typeof body === "string" && body.length <= MAX_FEED_CHARS) feeds[name] = body;
+  }
+
   return {
     url,
     title: typeof d.title === "string" ? d.title.slice(0, 200) : "",
     text,
     images,
+    ...(Object.keys(feeds).length ? { feeds } : {}),
   };
 }

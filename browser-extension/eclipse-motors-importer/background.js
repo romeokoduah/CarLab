@@ -6,6 +6,7 @@
  */
 import {
   che168ListingUrl,
+  collectFeeds,
   collectListing,
   LISTING_MARKERS_SOURCE,
   probeListing,
@@ -110,7 +111,9 @@ async function readListing(rawUrl, adminTab, id) {
         await sleep(400);
         const page = await run(tab.id, collectListing);
         if (!page) throw new Error("the page returned nothing");
-        return { ok: true, page: { url, ...page } };
+        // The spec sheet and car record behind the page; optional extras.
+        const feeds = (await run(tab.id, collectFeeds).catch(() => null)) || {};
+        return { ok: true, page: { url, ...page, feeds } };
       } catch (e) {
         if (attempt >= 3) {
           return { ok: false, error: `Couldn't read the che168 tab (${e?.message || e}). Click Import to try again.` };

@@ -34,6 +34,14 @@ import {
   type ReconciledListing,
 } from "@/lib/import/che168-parse";
 import { canonicalMake } from "@/lib/data/vehicles";
+import {
+  carInfoText,
+  feedFacts,
+  MAX_FEED_CHARS,
+  feedForUrl,
+  specSheetText,
+  type ListingFeeds,
+} from "@/lib/import/che168-api";
 import { extractListing } from "@/lib/import/deepseek";
 import { LISTING_MARKERS, type PagePayload } from "@/lib/import/page-payload";
 
@@ -148,6 +156,22 @@ async function extractCn(browser: Browser, url: string) {
     // Not on the mobile page: its gallery is React Native Web, whose <img>
     // only gets its link once the photo has actually loaded.
     if (!mobile) await blockHeavyResources(page);
+    // Keep che168's own data feeds for the listing (spec sheet, car record,
+    // highlights) as the page receives them — see lib/import/che168-api.ts.
+    const feeds: ListingFeeds = {};
+    const reads: Promise<void>[] = [];
+    page.on("response", (res) => {
+      const name = feedForUrl(res.url());
+      if (!name || !res.ok()) return;
+      reads.push(
+        res.text().then(
+          (body) => {
+            if (body.length <= MAX_FEED_CHARS) feeds[name] = body;
+          },
+          () => {},
+        ),
+      );
+    });
     await page.goto(url, mobile ? { waitUntil: "commit", timeout: 60000 } : { waitUntil: "domcontentloaded", timeout: 45000 });
     // Price/mileage text and every photo URL are present as soon as the
     // listing text is, once images are not competing for the connection. If
@@ -184,7 +208,8 @@ async function extractCn(browser: Browser, url: string) {
               .map((s) => s.split("?")[0]),
           )];
         }, mobile);
-        return { text, images };
+        await Promise.all(reads);
+        return { text, images, feeds };
       } catch (e) {
         if (attempt >= 3 || !isNavigationRace(e)) throw e;
       }
@@ -341,7 +366,7 @@ export async function scrapeChe168Listing(rawUrl: string): Promise<RawListing> {
     await browser.close();
   }
 
-  return buildListing({ rawUrl: cnUrl, srcId, cn, en });
+  return buildListing({ rawUrl: cnUrl, srcId, cn, en, feeds: cn.feeds });
 }
 
 /**
@@ -368,6 +393,7 @@ export async function importChe168FromPage(copied: PagePayload): Promise<RawList
     srcId,
     cn: { text: copied.text, images: copied.images },
     en: null,
+    feeds: copied.feeds,
   });
 }
 
@@ -376,11 +402,14 @@ async function buildListing({
   srcId,
   cn,
   en,
+  feeds = {},
 }: {
   rawUrl: string;
   srcId: string;
   cn: { text: string; images: string[] };
   en: Awaited<ReturnType<typeof extractEn>>;
+  /** che168's own data feeds for the listing, when they were captured. */
+  feeds?: ListingFeeds;
 }): Promise<RawListing> {
   if (isMobileListingUrl(rawUrl)) cn = { ...cn, text: focusMobileListing(cn.text) };
   // Deterministic reads from the Chinese page — the hard numbers.
@@ -392,11 +421,15 @@ async function buildListing({
   }
   const enHead = en?.alive ? en.head : "";
   const crumb = enHead ? parseBreadcrumbMakeModel(enHead) : null;
+  // che168's own record for this car, when captured, is the literal source for
+  // the hard numbers and the spec fields; the page text is the fallback.
+  const fed = feedFacts(feeds, srcId);
   const det: DeterministicFacts = {
-    carRmb,
-    mileageKm: parseCnMileage(cn.text),
-    year: parseCnYear(cn.text),
-    previousOwners: parseCnTransfers(cn.text),
+    ...fed,
+    carRmb: fed.carRmb ?? carRmb,
+    mileageKm: fed.mileageKm ?? parseCnMileage(cn.text),
+    year: fed.year ?? parseCnYear(cn.text),
+    previousOwners: fed.previousOwners ?? parseCnTransfers(cn.text),
     make: crumb ? canonicalMake(crumb.make) : undefined,
     model: crumb?.model,
     trim: crumb
@@ -409,9 +442,13 @@ async function buildListing({
   const enText = en?.alive
     ? [en.head, en.specSheet].filter(Boolean).join("\n\n")
     : "";
+  const specText = [carInfoText(feeds, srcId), specSheetText(feeds, srcId)]
+    .filter(Boolean)
+    .join("\n");
   const ai = await extractListing({
     cnText: cn.text,
     enText: enText || undefined,
+    specText: specText || undefined,
     known: {
       carRmb: det.carRmb,
       mileageKm: det.mileageKm,

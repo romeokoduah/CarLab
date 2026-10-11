@@ -100,3 +100,43 @@ export function collectListing() {
   }
   return { title: document.title, text, images };
 }
+
+/**
+ * che168's own data feeds for this listing — the full spec sheet, the car's
+ * record and its highlighted equipment — which the mobile page loads but only
+ * partly shows. Their links are signed, so they are never built here: this
+ * re-reads the exact links the page already called (from its resource
+ * timings), for this listing's infoid only. Anything that fails is skipped;
+ * the import still works from the page text alone. Mirrors feedForUrl in
+ * lib/import/che168-api.ts.
+ */
+export async function collectFeeds() {
+  const infoid = new URLSearchParams(location.search).get("infoid");
+  if (!infoid) return {};
+  const names = {
+    getparamtypeitems: "paramtypeitems",
+    getcarinfo: "carinfo",
+    getcarinfoext: "carinfoext",
+  };
+  const feeds = {};
+  for (const entry of performance.getEntriesByType("resource")) {
+    let u;
+    try {
+      u = new URL(entry.name);
+    } catch {
+      continue;
+    }
+    const m = u.pathname.match(/\/car\/(getparamtypeitems|getcarinfoext|getcarinfo)$/);
+    if (!m || !/(^|\.)che168\.com$/.test(u.hostname) || u.searchParams.get("infoid") !== infoid) continue;
+    const name = names[m[1]];
+    if (feeds[name]) continue;
+    try {
+      const res = await fetch(u.toString());
+      const body = res.ok ? await res.text() : "";
+      if (body && body.length <= 200000) feeds[name] = body;
+    } catch {
+      // A feed that can't be re-read is left out.
+    }
+  }
+  return feeds;
+}
