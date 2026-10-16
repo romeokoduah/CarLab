@@ -74,6 +74,11 @@ export function SiteFooter({ initialSettings }: { initialSettings: Settings }) {
               </Link>
             </li>
             <li>
+              <Link href="/ready-in-ghana" className="hover:text-foreground">
+                Ready in Ghana
+              </Link>
+            </li>
+            <li>
               <Link
                 href="/inventory?cond=New"
                 className="hover:text-foreground"

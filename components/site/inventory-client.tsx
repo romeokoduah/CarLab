@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -79,6 +80,8 @@ const SCROLL_TTL_MS = 30 * 60 * 1000;
 
 interface SavedScroll {
   query: string;
+  /** Which listing page saved it; older entries (no path) came from /inventory. */
+  path?: string;
   y: number;
   at: number;
 }
@@ -115,8 +118,19 @@ function facetCounts(cars: Car[], filters: Filters) {
 
 export function InventoryClient({
   initialCars = [],
+  basePath = "/inventory",
+  title = "Inventory",
+  intro,
+  onlyInGhana = false,
 }: {
   initialCars?: Car[];
+  /** The page this browser lives on; filters and paging write to its URL. */
+  basePath?: string;
+  title?: string;
+  /** A line under the heading saying what this page lists. */
+  intro?: string;
+  /** Narrow the stock to cars already in Ghana (/ready-in-ghana). */
+  onlyInGhana?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -125,7 +139,11 @@ export function InventoryClient({
   const storeCars = useStore((s) => s.cars);
   const hydrated = useStore((s) => s.hydrated);
   // Render server-provided cars immediately; swap to the store once loaded.
-  const cars = hydrated ? storeCars : initialCars;
+  const allCars = hydrated ? storeCars : initialCars;
+  const cars = useMemo(
+    () => (onlyInGhana ? allCars.filter((c) => c.inGhana) : allCars),
+    [allCars, onlyInGhana],
+  );
   const ready = hydrated || initialCars.length > 0;
 
   const initialParams = new URLSearchParams(urlQuery);
@@ -172,7 +190,7 @@ export function InventoryClient({
     const params = new URLSearchParams(filtersToQuery(f));
     if (p > 1) params.set("page", String(p));
     const q = params.toString();
-    return q ? `/inventory?${q}` : "/inventory";
+    return q ? `${basePath}?${q}` : basePath;
   };
 
   // Adopt external URL changes (shared links, back/forward).
@@ -204,7 +222,7 @@ export function InventoryClient({
   useEffect(() => {
     const href = buildUrl(filters, page);
     const t = setTimeout(() => {
-      const current = urlQuery ? `/inventory?${urlQuery}` : "/inventory";
+      const current = urlQuery ? `${basePath}?${urlQuery}` : basePath;
       if (href !== current) router.replace(href, { scroll: false });
     }, 200);
     return () => clearTimeout(t);
@@ -219,7 +237,12 @@ export function InventoryClient({
     try {
       sessionStorage.setItem(
         SCROLL_KEY,
-        JSON.stringify({ query: urlQuery, y: window.scrollY, at: Date.now() }),
+        JSON.stringify({
+          query: urlQuery,
+          path: basePath,
+          y: window.scrollY,
+          at: Date.now(),
+        }),
       );
     } catch {
       // Private-browsing quota: losing the position is not worth an error.
@@ -233,7 +256,13 @@ export function InventoryClient({
 
     const saved = readSavedScroll();
     // Only for the same result set — a different search deserves the top.
-    if (!saved || saved.query !== urlQuery || saved.y <= 0) return;
+    if (
+      !saved ||
+      saved.query !== urlQuery ||
+      (saved.path ?? "/inventory") !== basePath ||
+      saved.y <= 0
+    )
+      return;
     try {
       sessionStorage.removeItem(SCROLL_KEY);
     } catch {
@@ -306,8 +335,11 @@ export function InventoryClient({
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          Inventory
+          {title}
         </h1>
+        {intro && (
+          <p className="mt-2 max-w-2xl text-muted-foreground">{intro}</p>
+        )}
         <p className="mt-1.5 text-sm text-muted-foreground">
           {!ready ? (
             "Loading available vehicles…"
@@ -481,11 +513,28 @@ export function InventoryClient({
                 onPage={goToPage}
               />
             </>
+          ) : cars.length === 0 && onlyInGhana ? (
+            <NoGhanaStock />
           ) : (
             <EmptyState onReset={onReset} />
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function NoGhanaStock() {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-24 text-center">
+      <h3 className="text-lg font-semibold">No cars in Ghana right now</h3>
+      <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">
+        Our local stock sells fast. Browse the full inventory — we can import
+        any of those cars for you.
+      </p>
+      <Button asChild variant="brand" className="mt-6">
+        <Link href="/inventory">Browse all cars</Link>
+      </Button>
     </div>
   );
 }

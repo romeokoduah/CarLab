@@ -98,6 +98,7 @@ interface FormState {
   condition: Condition;
   status: CarStatus;
   verified: boolean;
+  inGhana: boolean;
   description: string;
   features: string[];
   /** The "Full specifications" sheet. */
@@ -147,6 +148,7 @@ function initFrom(car: Car | undefined, rates: Rates): FormState {
     condition: car?.condition ?? "Used",
     status: car?.status ?? "Available",
     verified: car?.verified ?? true,
+    inGhana: car?.inGhana ?? false,
     description: car?.description ?? "",
     features: car?.features ?? [],
     specs: car?.specs ?? [],
@@ -461,6 +463,7 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
       condition: f.condition,
       status: f.status,
       verified: f.verified,
+      inGhana: f.inGhana,
       description: f.description,
       features: f.features,
       specs: normalizeSpecs(f.specs),
@@ -939,6 +942,17 @@ export function CarForm({ car, onDone }: { car?: Car; onDone: () => void }) {
               />
               <span className="text-sm text-muted-foreground">
                 {f.verified ? "Verified" : "Not verified"}
+              </span>
+            </div>
+          </Field>
+          <Field label="Location">
+            <div className="flex h-10 items-center gap-2">
+              <Switch
+                checked={f.inGhana}
+                onCheckedChange={(v) => set("inGhana", v)}
+              />
+              <span className="text-sm text-muted-foreground">
+                {f.inGhana ? "In Ghana — on Ready in Ghana" : "Ordered from abroad"}
               </span>
             </div>
           </Field>

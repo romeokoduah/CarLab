@@ -37,6 +37,11 @@ export function CarCard({ car }: { car: Car }) {
         <div className="absolute left-3 top-3 flex flex-wrap items-center gap-1.5">
           <StatusBadge status={car.status} />
           {car.condition === "New" && <Badge variant="brand">New</Badge>}
+          {car.inGhana && (
+            <Badge variant="default" className="bg-emerald-600 text-white">
+              In Ghana
+            </Badge>
+          )}
         </div>
 
         {/* top-right actions */}

@@ -57,6 +57,11 @@ export interface Car {
   previousOwners?: number;
   registrationStatus?: RegistrationStatus;
   /**
+   * The car is physically in Ghana now — ready to view and drive away, rather
+   * than ordered from abroad. These cars are listed on /ready-in-ghana.
+   */
+  inGhana?: boolean;
+  /**
    * The full specification sheet shown under "Full specifications" on the
    * car page — dimensions, engine, chassis and the like, beyond the headline
    * fields above. Filled by the che168 importer, editable in the admin form.

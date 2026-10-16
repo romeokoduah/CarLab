@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 // direct URL and protected by a real server-side login.
 const LINKS = [
   { href: "/inventory", label: "Inventory" },
+  { href: "/ready-in-ghana", label: "Ready in Ghana" },
   { href: "/duty-calculator", label: "Duty calculator" },
   { href: "/favourites", label: "Favourites" },
 ];

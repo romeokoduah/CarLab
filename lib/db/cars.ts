@@ -32,6 +32,7 @@ interface CarRow {
   horsepower: number | null;
   previous_owners: number | null;
   registration_status: Car["registrationStatus"] | null;
+  in_ghana: boolean;
   // numeric -> string from pg
   cost_car_rmb: string | null;
   cost_logistics_rmb: string | null;
@@ -89,6 +90,7 @@ function mapCar(r: CarRow, images: CarImage[]): Car {
     horsepower: r.horsepower ?? undefined,
     previousOwners: r.previous_owners ?? undefined,
     registrationStatus: r.registration_status ?? undefined,
+    inGhana: r.in_ghana,
     costCarRmb: numOrUndef(r.cost_car_rmb),
     costLogisticsRmb: numOrUndef(r.cost_logistics_rmb),
     costProfitRmb: numOrUndef(r.cost_profit_rmb),
@@ -123,7 +125,7 @@ const CAR_COLUMNS = `make=$2, model=$3, year=$4, price_ghs=$5, mileage_km=$6,
   horsepower=$22, previous_owners=$23, registration_status=$24,
   cost_car_rmb=$25, cost_logistics_rmb=$26, cost_profit_rmb=$27,
   cost_shipping_usd=$28, rate_ghs_per_rmb=$29, rate_ghs_per_usd=$30,
-  cost_rates_pinned=$31, source_url=$32, specs=$33`;
+  cost_rates_pinned=$31, source_url=$32, specs=$33, in_ghana=$34`;
 
 function carValues(id: string, c: Omit<Car, "id" | "createdAt" | "images">) {
   return [
@@ -135,7 +137,7 @@ function carValues(id: string, c: Omit<Car, "id" | "createdAt" | "images">) {
     c.costCarRmb ?? null, c.costLogisticsRmb ?? null, c.costProfitRmb ?? null,
     c.costShippingUsd ?? null, c.rateGhsPerRmb ?? null, c.rateGhsPerUsd ?? null,
     c.ratesPinned ?? false, c.sourceUrl ?? null,
-    JSON.stringify(normalizeSpecs(c.specs)),
+    JSON.stringify(normalizeSpecs(c.specs)), c.inGhana ?? false,
   ];
 }
 
@@ -174,9 +176,9 @@ export async function dbCreateCar(
        video_url, status, verified, engine_capacity, drivetrain, seats, doors,
        cylinders, horsepower, previous_owners, registration_status,
        cost_car_rmb, cost_logistics_rmb, cost_profit_rmb, cost_shipping_usd,
-       rate_ghs_per_rmb, rate_ghs_per_usd, cost_rates_pinned, source_url, specs)
+       rate_ghs_per_rmb, rate_ghs_per_usd, cost_rates_pinned, source_url, specs, in_ghana)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
-       $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)`,
+       $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34)`,
     carValues(id, input),
   );
   await replaceImages(id, input.images ?? []);

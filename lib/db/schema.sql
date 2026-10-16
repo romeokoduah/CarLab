@@ -44,6 +44,8 @@ ALTER TABLE cars ADD COLUMN IF NOT EXISTS source_url text;
 -- Full specification sheet: [{title, rows: [{label, value}]}]. Public, shown
 -- under "Full specifications" on the car page (lib/specs.ts normalizes it).
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS specs jsonb NOT NULL DEFAULT '[]';
+-- Stock already in Ghana (listed on /ready-in-ghana) vs cars ordered from abroad.
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS in_ghana boolean NOT NULL DEFAULT false;
 
 CREATE TABLE IF NOT EXISTS car_images (
   id       text PRIMARY KEY,
